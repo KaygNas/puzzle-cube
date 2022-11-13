@@ -1,8 +1,16 @@
 import { Cube } from '../cube'
-import { getGl, GL, initIndicesBuffer, initShader, initVertexBuffers } from './webgl-utils'
+import {
+	getGl,
+	GL,
+	initIndicesBuffer,
+	initShader,
+	initVertexBuffers,
+	setLight,
+	setMatrix,
+} from './webgl-utils'
 import VERTEX_SHADER from './vertex-shader.glsl'
 import FRAGMENT_SHADER from './fragment-shader.glsl'
-import { vec3, vec4 } from 'gl-matrix'
+import { vec3, vec4, mat4 } from 'gl-matrix'
 
 export class CubeRenderer {
 	gl: GL
@@ -11,16 +19,31 @@ export class CubeRenderer {
 	VERTICES_COUNT_PER_FACE = 4
 	FACE_COUNT = 6
 
+	viewMat = mat4.create()
+	eye = vec3.fromValues(3, 3, 7)
+	center = vec3.fromValues(0.0, 0.0, 0.0)
+	up = vec3.fromValues(0.0, -1.0, 0.0)
+	modelMat = mat4.create()
+	projMat = mat4.ortho(mat4.create(), -5, 5, -5, 5, 1, 100)
+
 	constructor(private canvasElement: HTMLCanvasElement) {
 		const gl = getGl(this.canvasElement)
 		initShader(gl, VERTEX_SHADER, FRAGMENT_SHADER)
+		gl.enable(gl.DEPTH_TEST)
 		this.gl = gl
 	}
 
 	render(cube: Cube): void {
-		const { gl } = this
+		const { gl, viewMat, eye, center, up, projMat, modelMat } = this
 		this.toVerticesBuffer(cube)
 		const n = this.toIndicesBuffer()
+
+		mat4.lookAt(viewMat, eye, center, up)
+
+		setMatrix(gl, 'u_ViewMatrix', viewMat)
+		setMatrix(gl, 'u_ProjMatrix', projMat)
+		setMatrix(gl, 'u_ModelMatrix', modelMat)
+
 		gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0)
 	}
 
@@ -88,14 +111,14 @@ export class CubeRenderer {
 			toTop: cubeUp,
 			toLeft: cubeFront,
 		})
-		initVertexBuffers(gl, vertices, 8, [
+		initVertexBuffers(gl, vertices, VERTEX_SIZE + COLOR_SIZE, [
 			{ attributeName: 'a_Position', size: 4, offset: 0 },
 			{ attributeName: 'a_Color', size: 4, offset: 4 },
 		])
 	}
 
 	toIndicesBuffer() {
-		const { gl, VERTEX_SIZE, COLOR_SIZE, VERTICES_COUNT_PER_FACE, FACE_COUNT } = this
+		const { gl, FACE_COUNT } = this
 		const INDICES_COUNT = 3 * 2 * FACE_COUNT
 		const indices = new Uint8Array(INDICES_COUNT)
 		let j = 0
@@ -159,6 +182,7 @@ export class CubeRenderer {
 			color.forEach((value) => {
 				vertices[index++] = value
 			})
+
 			return index
 		}
 
