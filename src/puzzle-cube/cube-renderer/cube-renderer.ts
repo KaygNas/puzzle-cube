@@ -20,9 +20,9 @@ export class CubeRenderer {
 	FACE_COUNT = 6
 
 	viewMat = mat4.create()
-	eye = vec3.fromValues(3, 3, 7)
+	eye = vec3.fromValues(-3, 3, 7)
 	center = vec3.fromValues(0.0, 0.0, 0.0)
-	up = vec3.fromValues(0.0, -1.0, 0.0)
+	up = vec3.fromValues(0.0, 1.0, 0.0)
 	modelMat = mat4.create()
 	projMat = mat4.ortho(mat4.create(), -5, 5, -5, 5, 1, 100)
 
@@ -37,12 +37,12 @@ export class CubeRenderer {
 		const { gl, viewMat, eye, center, up, projMat, modelMat } = this
 		this.toVerticesBuffer(cube)
 		const n = this.toIndicesBuffer()
+		const _modelMat = mat4.multiply(mat4.create(), modelMat, cube.transform.localToWorld())
 
 		mat4.lookAt(viewMat, eye, center, up)
-
 		setMatrix(gl, 'u_ViewMatrix', viewMat)
 		setMatrix(gl, 'u_ProjMatrix', projMat)
-		setMatrix(gl, 'u_ModelMatrix', modelMat)
+		setMatrix(gl, 'u_ModelMatrix', _modelMat)
 
 		gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0)
 	}
