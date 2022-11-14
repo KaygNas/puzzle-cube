@@ -3,7 +3,7 @@ import { assert } from "./assert";
 import { Cube, FaceName } from "./cube";
 import { CubeRenderer } from "./cube-renderer";
 import { cubes as defaultCubes } from './cubes'
-import { cloneDeep } from 'lodash'
+import { clamp } from 'lodash/fp'
 
 export type SliceName = FaceName | 'hfront' | 'vfront' | 'vleft'
 export interface Slice {
@@ -34,8 +34,7 @@ export class PuzzleCude {
   constructor(
     private cubeRenderer: CubeRenderer,
   ) {
-    // TODO
-    // assert(this.cubes.length === 27, 'puzzle cube should have 27 cubes')
+    assert(this.cubes.length === 27, 'puzzle cube should have 27 cubes')
 
     this.cubes.forEach(cube => cubeRenderer.add(cube))
   }
@@ -43,10 +42,40 @@ export class PuzzleCude {
   rotateSlice(sliceName: SliceName, direction: RotationDirection) {
     const slice = this.getSlice(sliceName)
     const rad = 0.5 * Math.PI * (direction === 'clockwise' ? -1 : 1)
-    slice.cubes.forEach((cube) => {
-      cube.transform.rotate(slice.rotationAxis, rad)
-    })
-    this.render()
+    this.animate((dt) => {
+      const drad = rad * dt
+      slice.cubes.forEach((cube) => {
+        cube.transform.rotate(slice.rotationAxis, drad)
+      })
+      this.render()
+    }, 240)
+  }
+
+  animate(callback: (dt: number) => void, time: number) {
+    let start: number | undefined = undefined
+    let last: number | undefined = undefined
+    let st = 0 // sum of delta t
+    const animationCallback: FrameRequestCallback = (timestamp) => {
+      if (start === undefined) {
+        start = timestamp
+      }
+      if (last == undefined) {
+        last = timestamp
+      }
+
+      let dt = (timestamp - last) / time
+      st += dt
+      dt = st < 1 ? dt : dt - (st - 1) // make sure the sum of dt not exceed 1
+      last = timestamp
+
+      callback(dt)
+
+      if (st < 1) {
+        requestAnimationFrame(animationCallback)
+      }
+    }
+
+    requestAnimationFrame(animationCallback)
   }
 
   render() {
