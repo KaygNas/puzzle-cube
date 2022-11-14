@@ -1,17 +1,24 @@
 import { mat4, quat, vec3 } from 'gl-matrix'
 
 export class Transform {
-	translate = vec3.fromValues(0, 0, 0)
-	rotate = quat.create()
-	scale = vec3.fromValues(1, 1, 1)
+  private _matrix = mat4.create()
 
-	constructor() {}
+  constructor() { }
 
-	localToWorld() {
-		const matrix = mat4.create()
-		mat4.multiply(matrix, matrix, mat4.fromTranslation(mat4.create(), this.translate))
-		mat4.multiply(matrix, matrix, mat4.fromQuat(mat4.create(), this.rotate))
-		mat4.multiply(matrix, matrix, mat4.fromScaling(mat4.create(), this.scale))
-		return matrix
-	}
+  rotate(axis: vec3, rad: number,) {
+    const _axis = vec3.clone(axis)
+    vec3.transformMat4(_axis, _axis, this.wordTolocal())
+
+    mat4.rotate(this._matrix, this._matrix, rad, _axis)
+  }
+
+  localToWorld() {
+    return this._matrix
+  }
+
+  wordTolocal() {
+    const _matrix = mat4.clone(this._matrix)
+    mat4.invert(_matrix, this._matrix)
+    return _matrix
+  }
 }

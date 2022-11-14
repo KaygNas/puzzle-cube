@@ -40,13 +40,14 @@ export class Cube {
     }
   }
 
+  public front: vec3 = vec3.fromValues(0, 0, 1)
+  public up: vec3 = vec3.fromValues(0, 1, 0)
+  public size: number = 0.9
+  public transform: Transform = new Transform()
+
   constructor(
     faceColors: Partial<Record<FaceName, FaceColor>>,
     public center: vec3,
-    public front: vec3 = vec3.fromValues(0, 0, 1),
-    public up: vec3 = vec3.fromValues(0, 1, 0),
-    public size: number = 0.9,
-    public transform: Transform = new Transform(),
   ) {
     Object.assign(this._faceColors, faceColors)
   }

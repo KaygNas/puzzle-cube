@@ -43,6 +43,8 @@ export class CubeRenderer {
     setMatrix(gl, 'u_ViewMatrix', viewMat)
     setMatrix(gl, 'u_ProjMatrix', projMat)
 
+    gl.clear(gl.DEPTH_BUFFER_BIT)
+    gl.clear(gl.COLOR_BUFFER_BIT)
     this.cubes.forEach(cube => this.renderCube(cube))
   }
 
@@ -62,7 +64,7 @@ export class CubeRenderer {
   }
 
   private enableRotationControl() {
-    document.onkeydown = (e) => {
+    const onkeydown = (e: KeyboardEvent) => {
       const { modelMat } = this
       const tranformMat = mat4.create()
       switch (e.key) {
@@ -83,5 +85,6 @@ export class CubeRenderer {
       mat4.multiply(modelMat, modelMat, tranformMat)
       this.render()
     }
+    window.addEventListener('keydown', onkeydown)
   }
 }
