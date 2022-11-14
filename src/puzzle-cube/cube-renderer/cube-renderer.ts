@@ -31,7 +31,7 @@ export class CubeRenderer {
     setLight(gl, [
       { uniformName: 'u_LightColor', vector: vec3.fromValues(1, 1, 1) },
       { uniformName: 'u_AmbientLight', vector: vec3.fromValues(0.6, 0.6, 0.6) },
-      { uniformName: 'u_LightPosition', vector: vec3.fromValues(0.0, 7.0, 8.0) },
+      { uniformName: 'u_LightPosition', vector: vec3.fromValues(-3.0, 7.0, 8.0) },
     ])
     gl.enable(gl.DEPTH_TEST)
     this.enableRotationControl()

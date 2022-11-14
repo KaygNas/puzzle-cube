@@ -6,13 +6,13 @@ export type FaceName = 'front' | 'back' | 'up' | 'down' | 'left' | 'right'
 export type FaceColor = 'red' | 'green' | 'blue' | 'yellow' | 'purple' | 'white' | 'black'
 
 export const Color: Record<FaceColor, vec4> = {
-  red: vec4.fromValues(1, 0, 0, 1),
-  green: vec4.fromValues(0, 1, 0, 1),
-  blue: vec4.fromValues(0, 0, 1, 1),
-  yellow: vec4.fromValues(1, 1, 0, 1),
-  white: vec4.fromValues(1, 1, 1, 1),
-  purple: vec4.fromValues(1, 0, 1, 1),
-  black: vec4.fromValues(0.1, 0.1, 0.1, 1),
+  red: vec4.fromValues(192 / 255, 72 / 255, 81 / 255, 1),
+  green: vec4.fromValues(69 / 255, 183 / 255, 135 / 255, 1),
+  blue: vec4.fromValues(26 / 255, 148 / 255, 188 / 255, 1),
+  yellow: vec4.fromValues(228 / 255, 191 / 255, 17 / 255, 1),
+  white: vec4.fromValues(251 / 255, 236 / 255, 222 / 255, 1),
+  purple: vec4.fromValues(129 / 255, 60 / 255, 133 / 255, 1),
+  black: vec4.fromValues(79 / 255, 64 / 255, 50 / 255, 1),
 }
 
 
