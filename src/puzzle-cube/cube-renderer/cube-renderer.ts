@@ -28,6 +28,11 @@ export class CubeRenderer {
   constructor(private canvasElement: HTMLCanvasElement) {
     const gl = getGl(this.canvasElement)
     initShader(gl, VERTEX_SHADER, FRAGMENT_SHADER)
+    setLight(gl, [
+      { uniformName: 'u_LightColor', vector: vec3.fromValues(1, 1, 1) },
+      { uniformName: 'u_AmbientLight', vector: vec3.fromValues(0.6, 0.6, 0.6) },
+      { uniformName: 'u_LightPosition', vector: vec3.fromValues(0.0, 7.0, 8.0) },
+    ])
     gl.enable(gl.DEPTH_TEST)
     this.enableRotationControl()
     this.gl = gl
@@ -54,6 +59,7 @@ export class CubeRenderer {
     initVertexBuffers(gl, vertices, VERTEX_TOTAL_SIZE, [
       { attributeName: 'a_Position', size: 4, offset: 0 },
       { attributeName: 'a_Color', size: 4, offset: 4 },
+      { attributeName: 'a_Normal', size: 4, offset: 8 },
     ])
     initIndicesBuffer(gl, indices)
 

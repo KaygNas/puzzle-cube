@@ -3,9 +3,10 @@ import { Cube } from "../cube"
 
 const VERTEX_SIZE = 4
 const COLOR_SIZE = 4
+const NORMAL_SIZE = 4
 const VERTICES_COUNT_PER_FACE = 4
 const FACE_COUNT = 6
-const VERTEX_TOTAL_SIZE = VERTEX_SIZE + COLOR_SIZE
+const VERTEX_TOTAL_SIZE = VERTEX_SIZE + COLOR_SIZE + NORMAL_SIZE
 
 const indices = createIndices()
 
@@ -26,7 +27,7 @@ function createIndices() {
 
 function createEmptyVertices() {
   return new Float32Array(
-    (VERTEX_SIZE + COLOR_SIZE) * VERTICES_COUNT_PER_FACE * FACE_COUNT,
+    VERTEX_TOTAL_SIZE * VERTICES_COUNT_PER_FACE * FACE_COUNT,
   )
 }
 
@@ -136,15 +137,16 @@ export class CubeVerticesWriter {
     vec3.scaleAndAdd(leftBottom, leftBottom, face.toTop, -halfSideLength)
 
 
-    this.writeVertex(leftTop, face.color)
-    this.writeVertex(rightTop, face.color)
-    this.writeVertex(rightBottom, face.color)
-    this.writeVertex(leftBottom, face.color)
+    this.writeVertex(leftTop, face.color, face.toCenter)
+    this.writeVertex(rightTop, face.color, face.toCenter)
+    this.writeVertex(rightBottom, face.color, face.toCenter)
+    this.writeVertex(leftBottom, face.color, face.toCenter)
   }
 
   private writeVertex(
     vertex: vec3,
     color: vec4,
+    normal: vec3,
   ) {
     const { vertices, currIndex } = this
     let index = currIndex
@@ -157,6 +159,11 @@ export class CubeVerticesWriter {
     color.forEach((value) => {
       vertices[index++] = value
     })
+
+    normal.forEach(value => {
+      vertices[index++] = value
+    })
+    vertices[index++] = 1
 
     this.currIndex = index
   }

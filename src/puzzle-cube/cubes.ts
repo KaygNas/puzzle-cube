@@ -23,7 +23,7 @@ export const cubes: Cube[] = [
   new Cube({ down: 'green', right: 'purple', }, center(1, -1, 0)),
 
   new Cube({ left: 'blue', }, center(-1, 0, 0)),
-  new Cube({ front: 'yellow', back: 'red', up: 'white', down: 'green', left: 'blue', right: 'purple' }, center(0, 0, 0)),
+  new Cube({}, center(0, 0, 0)),
   new Cube({ right: 'purple', }, center(1, 0, 0)),
 
   new Cube({ up: 'white', left: 'blue', }, center(-1, 1, 0)),
