@@ -30,6 +30,7 @@ const SLICE: Record<SliceName, { center: vec3, rotationAxis: vec3 }> = {
 
 export class PuzzleCude {
   private cubes: Cube[] = defaultCubes
+  private rotating = false
 
   constructor(
     private cubeRenderer: CubeRenderer,
@@ -39,43 +40,56 @@ export class PuzzleCude {
     this.cubes.forEach(cube => cubeRenderer.add(cube))
   }
 
-  rotateSlice(sliceName: SliceName, direction: RotationDirection) {
+  async rotateSlice(sliceName: SliceName, direction: RotationDirection) {
+    if (this.rotating) {
+      return
+    }
+
     const slice = this.getSlice(sliceName)
     const rad = 0.5 * Math.PI * (direction === 'clockwise' ? -1 : 1)
-    this.animate((dt) => {
+    this.rotating = true
+    await this.animate((dt) => {
       const drad = rad * dt
       slice.cubes.forEach((cube) => {
         cube.transform.rotate(slice.rotationAxis, drad)
       })
       this.render()
-    }, 240)
+    }, 200).finally(() => {
+      this.rotating = false
+    })
   }
 
-  animate(callback: (dt: number) => void, time: number) {
+  async animate(callback: (dt: number) => void, time: number) {
     let start: number | undefined = undefined
     let last: number | undefined = undefined
     let st = 0 // sum of delta t
-    const animationCallback: FrameRequestCallback = (timestamp) => {
-      if (start === undefined) {
-        start = timestamp
-      }
-      if (last == undefined) {
+
+    return new Promise<void>((resolve) => {
+
+      const animationCallback: FrameRequestCallback = (timestamp) => {
+        if (start === undefined) {
+          start = timestamp
+        }
+        if (last == undefined) {
+          last = timestamp
+        }
+
+        let dt = (timestamp - last) / time
+        st += dt
+        dt = st < 1 ? dt : dt - (st - 1) // make sure the sum of dt not exceed 1
         last = timestamp
+
+        callback(dt)
+
+        if (st < 1) {
+          requestAnimationFrame(animationCallback)
+        } else {
+          resolve()
+        }
       }
 
-      let dt = (timestamp - last) / time
-      st += dt
-      dt = st < 1 ? dt : dt - (st - 1) // make sure the sum of dt not exceed 1
-      last = timestamp
-
-      callback(dt)
-
-      if (st < 1) {
-        requestAnimationFrame(animationCallback)
-      }
-    }
-
-    requestAnimationFrame(animationCallback)
+      requestAnimationFrame(animationCallback)
+    })
   }
 
   render() {
