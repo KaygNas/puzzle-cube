@@ -1,58 +1,11 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
-import { CubeRenderer, PuzzleCude, RotationDirection, SliceName } from './puzzle-cube'
-
-const canvasEle = ref<HTMLCanvasElement>()
-let puzzleCube: PuzzleCude
-
-const onkeydown = (e: KeyboardEvent) => {
-	console.log('e.key=', e.key)
-	const direction: RotationDirection = e.shiftKey ? 'counterclockwise' : 'clockwise'
-	switch (e.key.toLowerCase()) {
-		case 'q':
-			puzzleCube.rotateSlice('front', direction)
-			break
-		case 'w':
-			puzzleCube.rotateSlice('vleft', direction)
-			break
-		case 'e':
-			puzzleCube.rotateSlice('back', direction)
-			break
-		case 'a':
-			puzzleCube.rotateSlice('up', direction)
-			break
-		case 's':
-			puzzleCube.rotateSlice('hfront', direction)
-			break
-		case 'd':
-			puzzleCube.rotateSlice('down', direction)
-			break
-		case 'z':
-			puzzleCube.rotateSlice('left', direction)
-			break
-		case 'x':
-			puzzleCube.rotateSlice('vfront', direction)
-			break
-		case 'c':
-			puzzleCube.rotateSlice('right', direction)
-			break
-	}
-	puzzleCube.render()
-}
-
-onMounted(() => {
-	const cubeRenderer = new CubeRenderer(canvasEle.value!)
-	puzzleCube = new PuzzleCude(cubeRenderer)
-	puzzleCube.render()
-	window.addEventListener('keydown', onkeydown)
-})
-onUnmounted(() => {
-	window.removeEventListener('keydown', onkeydown)
-})
+import PuzzleCubeControlPane from './puzzle-cube-control-pane.vue'
+import PuzzleCube from './puzzle-cube.vue'
 </script>
 
 <template>
-	<canvas ref="canvasEle" width="800" height="800" @keydown="onkeydown" />
+	<PuzzleCubeControlPane />
+	<PuzzleCube :canvas-width="400" :canvas-height="400" />
 </template>
 
 <style scoped></style>

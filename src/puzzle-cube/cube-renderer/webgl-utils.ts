@@ -74,8 +74,6 @@ export function initVertexBuffers(
 	gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer)
 	gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW)
 
-
-
 	const FSIZE = vertices.BYTES_PER_ELEMENT
 	vertexAttributes.forEach(({ attributeName, offset, size }) => {
 		const vertexAttribute = gl.getAttribLocation(gl.program, attributeName)
