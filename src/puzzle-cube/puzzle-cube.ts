@@ -1,12 +1,23 @@
-import { mat4, quat, vec3 } from "gl-matrix";
-import { assert } from "./assert";
-import { Cube, FaceName } from "./cube";
-import { CubeRenderer } from "./cube-renderer";
+import { mat4, quat, vec3 } from 'gl-matrix'
+import { assert } from './assert'
+import { Cube, FaceName } from './cube'
+import { CubeRenderer } from './cube-renderer'
 import { cubes as defaultCubes } from './cubes'
-import { clamp } from 'lodash/fp'
 
 export type SliceName = FaceName | 'hfront' | 'vfront' | 'vleft'
+const SLICE_NAME_SHORT: Record<string, SliceName> = {
+  U: 'up',
+  MUD: 'hfront',
+  D: 'down',
+  F: 'front',
+  MFB: 'vleft',
+  B: 'back',
+  R: 'right',
+  MRL: 'vfront',
+  L: 'left',
+}
 export interface Slice {
+  name: SliceName
   cubes: Cube[]
   centerCube: Cube
   rotationAxis: vec3
@@ -16,28 +27,40 @@ export type RotationDirection = 'clockwise' | 'counterclockwise'
 const center = vec3.fromValues
 const axis = vec3.fromValues
 
-const SLICE: Record<SliceName, { center: vec3, rotationAxis: vec3 }> = {
+const SLICE: Record<SliceName, { center: vec3; rotationAxis: vec3 }> = {
   front: { center: center(0, 0, 1), rotationAxis: axis(0, 0, 1) },
   vleft: { center: center(0, 0, 0), rotationAxis: axis(0, 0, 1) },
-  back: { center: center(0, 0, -1), rotationAxis: axis(0, 0, 1) },
+  back: { center: center(0, 0, -1), rotationAxis: axis(0, 0, -1) },
   up: { center: center(0, 1, 0), rotationAxis: axis(0, 1, 0) },
   hfront: { center: center(0, 0, 0), rotationAxis: axis(0, 1, 0) },
-  down: { center: center(0, -1, 0), rotationAxis: axis(0, 1, 0) },
-  left: { center: center(-1, 0, 0), rotationAxis: axis(1, 0, 0) },
-  vfront: { center: center(0, 0, 0), rotationAxis: axis(1, 0, 0) },
+  down: { center: center(0, -1, 0), rotationAxis: axis(0, -1, 0) },
   right: { center: center(1, 0, 0), rotationAxis: axis(1, 0, 0) },
+  vfront: { center: center(0, 0, 0), rotationAxis: axis(1, 0, 0) },
+  left: { center: center(-1, 0, 0), rotationAxis: axis(-1, 0, 0) },
 }
 
 export class PuzzleCude {
   private cubes: Cube[] = defaultCubes
   private rotating = false
 
-  constructor(
-    private cubeRenderer: CubeRenderer,
-  ) {
+  constructor(private cubeRenderer: CubeRenderer) {
     assert(this.cubes.length === 27, 'puzzle cube should have 27 cubes')
 
-    this.cubes.forEach(cube => cubeRenderer.add(cube))
+    this.cubes.forEach((cube) => cubeRenderer.add(cube))
+  }
+
+  async do(directivesStr: string) {
+    const directives = directivesStr.split(" ").filter(Boolean).map((str) => {
+      assert(!!str, `directivesStr: "${directivesStr}" should not have emtpy string.`)
+      const direction: RotationDirection = str.endsWith(`'`) ? 'counterclockwise' : 'clockwise'
+      const sliceNameShort = str.endsWith(`'`) ? str.slice(0, str.length - 1) : str
+      const sliceName = SLICE_NAME_SHORT[sliceNameShort]
+      assert(sliceName !== undefined, `${sliceNameShort} should have coresponding sliceName.`)
+      return { direction, sliceName }
+    })
+    for (const { sliceName, direction } of directives) {
+      await this.rotateSlice(sliceName, direction)
+    }
   }
 
   async rotateSlice(sliceName: SliceName, direction: RotationDirection) {
@@ -65,7 +88,6 @@ export class PuzzleCude {
     let st = 0 // sum of delta t
 
     return new Promise<void>((resolve) => {
-
       const animationCallback: FrameRequestCallback = (timestamp) => {
         if (start === undefined) {
           start = timestamp
@@ -96,8 +118,8 @@ export class PuzzleCude {
     this.cubeRenderer.render()
   }
 
-  private getSlice(name: SliceName): Slice {
-    // given a slice name 
+  getSlice(name: SliceName): Slice {
+    // given a slice name
     // the rotation axis can be known
 
     // apply the transform of each cube
@@ -106,7 +128,7 @@ export class PuzzleCude {
     // a record of slice can be prepared
     // the record tells the centers and rotation axis of each slice
     const { rotationAxis, center } = SLICE[name]
-    const centerCube = this.cubes.find(cube => {
+    const centerCube = this.cubes.find((cube) => {
       const _center = vec3.create()
       vec3.transformMat4(_center, cube.center, cube.transform.localToWorld())
       return vec3.equals(_center, center)
@@ -120,51 +142,53 @@ export class PuzzleCude {
         return a === undefined || Math.abs(a - b) < 0.001
       }
 
-      return cubes.filter(cube => {
+      return cubes.filter((cube) => {
         const center = vec3.create()
         vec3.transformMat4(center, cube.center, cube.transform.localToWorld())
 
-        const isOnAxis = isUndefinedOrEqual(axis.x, center[0])
-          && isUndefinedOrEqual(axis.y, center[1])
-          && isUndefinedOrEqual(axis.z, center[2])
+        const isOnAxis =
+          isUndefinedOrEqual(axis.x, center[0]) &&
+          isUndefinedOrEqual(axis.y, center[1]) &&
+          isUndefinedOrEqual(axis.z, center[2])
         return isOnAxis
       })
     }
     switch (name) {
       case 'front':
         cubes = slice(cubes, { z: center[2] })
-        break;
+        break
       case 'back':
         cubes = slice(cubes, { z: center[2] })
-        break;
+        break
       case 'up':
         cubes = slice(cubes, { y: center[1] })
-        break;
+        break
       case 'down':
         cubes = slice(cubes, { y: center[1] })
-        break;
+        break
       case 'left':
         cubes = slice(cubes, { x: center[0] })
-        break;
+        break
       case 'right':
         cubes = slice(cubes, { x: center[0] })
-        break;
+        break
       case 'vfront':
         cubes = slice(cubes, { x: center[0] })
-        break;
+        break
       case 'hfront':
         cubes = slice(cubes, { y: center[1] })
-        break;
+        break
       case 'vleft':
         cubes = slice(cubes, { z: center[2] })
-        break;
+        break
       default:
         throw new Error('unvalid slice name!')
     }
     return {
+      name,
       cubes,
       centerCube,
-      rotationAxis
+      rotationAxis,
     }
   }
 }
