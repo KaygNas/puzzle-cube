@@ -44,7 +44,7 @@ const onkeydown = (e: KeyboardEvent) => {
 			puzzleCube.rotateSlice('right', direction)
 			break
 		case 'enter':
-			puzzleCubeSolver.solve()
+			e.shiftKey ? puzzleCubeSolver.scramble() : puzzleCubeSolver.solve()
 			break
 	}
 	puzzleCube.render()

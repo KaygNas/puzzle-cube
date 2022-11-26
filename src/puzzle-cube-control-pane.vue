@@ -15,8 +15,12 @@ const LAYER_ROTATE_BUTTONS = [
 
 const shiftKey = ref(false)
 const layerRotateButtons = computed(() => {
-	return LAYER_ROTATE_BUTTONS.map(button => ({ ...button, action: shiftKey.value ? `${button.action}'` : button.action }))
+	return LAYER_ROTATE_BUTTONS.map((button) => ({
+		...button,
+		action: shiftKey.value ? `${button.action}'` : button.action,
+	}))
 })
+const enterAction = computed(() => (shiftKey.value ? 'scramble' : 'solve'))
 </script>
 
 <template>
@@ -26,9 +30,15 @@ const layerRotateButtons = computed(() => {
 			<KeyboardButton v-bind="button" :shift-key="shiftKey" />
 			<hr v-if="index % 3 === 2" />
 		</template>
+		<KeyboardButton :action="enterAction" key-name="Enter" button-name="Enter" />
+		<hr />
 
-		<KeyboardButton action="Reverse" key-name="Shift" @keydown="shiftKey = true" @keyup="shiftKey = false" />
-
+		<KeyboardButton
+			action="Reverse"
+			key-name="Shift"
+			@keydown="shiftKey = true"
+			@keyup="shiftKey = false"
+		/>
 		<h3>Camera Rotate</h3>
 		<KeyboardButton action="up" key-name="ArrowUp" button-name="↑" />
 		<KeyboardButton action="down" key-name="ArrowDown" button-name="↓" />
