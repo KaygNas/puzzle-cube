@@ -18,6 +18,14 @@ export const Color: Record<FaceColor, vec4> = {
   black: vec4.fromValues(79 / 255, 64 / 255, 50 / 255, 1),
 }
 
+export const COLOR_FACE_MAP: Record<Exclude<FaceColor, 'black'>, FaceName> = {
+  white: 'up',
+  red: 'front',
+  green: 'left',
+  orange: 'down',
+  yellow: 'back',
+  blue: 'right',
+} as const
 const defaultFaceColors = (): Record<FaceName, FaceColor> => {
   return {
     up: 'white',

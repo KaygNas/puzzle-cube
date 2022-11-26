@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, reactive, ref } from 'vue'
 import { CubeRenderer, PuzzleCude, RotationDirection, SliceName } from './puzzle-cube'
+import { PuzzleCubeResolver } from './puzzle-cube/puzzle-cube-resolver'
 
 const props = defineProps<{
 	canvasWidth: number
@@ -9,6 +10,7 @@ const props = defineProps<{
 
 const canvasEle = ref<HTMLCanvasElement>()
 let puzzleCube: PuzzleCude
+let puzzleCubeSolver: PuzzleCubeResolver
 
 const onkeydown = (e: KeyboardEvent) => {
 	console.log('e.key=', e.key)
@@ -41,6 +43,9 @@ const onkeydown = (e: KeyboardEvent) => {
 		case 'c':
 			puzzleCube.rotateSlice('right', direction)
 			break
+		case 'enter':
+			puzzleCubeSolver.solve()
+			break
 	}
 	puzzleCube.render()
 }
@@ -48,6 +53,7 @@ const onkeydown = (e: KeyboardEvent) => {
 onMounted(() => {
 	const cubeRenderer = new CubeRenderer(canvasEle.value!)
 	puzzleCube = new PuzzleCude(cubeRenderer)
+	puzzleCubeSolver = new PuzzleCubeResolver(puzzleCube)
 	puzzleCube.render()
 	window.addEventListener('keydown', onkeydown)
 })
