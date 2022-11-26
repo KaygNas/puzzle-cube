@@ -1,10 +1,26 @@
-import { mat4, quat, vec3 } from 'gl-matrix'
+import { mat3, mat4, quat, vec3 } from 'gl-matrix'
 import { assert } from './assert'
-import { Cube, FaceName } from './cube'
+import { Cube, FaceColor, FaceName, mapColorToFace } from './cube'
 import { CubeRenderer } from './cube-renderer'
 import { cubes as defaultCubes } from './cubes'
+import { equal } from './utils'
 
 export type SliceName = FaceName | 'hfront' | 'vfront' | 'vleft'
+const SLICE_NAME_TO_SHORT: Record<SliceName, string> = {
+  up: 'U',
+  hfront: 'MUD',
+  down: 'D',
+  front: 'F',
+  vleft: 'MFB',
+  back: 'B',
+  right: 'R',
+  vfront: 'MRL',
+  left: 'L',
+}
+export function mapSliceNameToShort(sliceName: SliceName) {
+  return SLICE_NAME_TO_SHORT[sliceName]
+}
+
 const SLICE_NAME_SHORT: Record<string, SliceName> = {
   U: 'up',
   MUD: 'hfront',
@@ -25,18 +41,29 @@ export interface Slice {
 export type RotationDirection = 'clockwise' | 'counterclockwise'
 
 const center = vec3.fromValues
-const axis = vec3.fromValues
+const normal = vec3.fromValues
+
+const NOMARILIZE_FACE_NORMAL: Record<FaceName, vec3> = {
+  front: normal(0, 0, 1),
+  back: normal(0, 0, -1),
+  up: normal(0, 1, 0),
+  down: normal(0, -1, 0),
+  right: normal(1, 0, 0),
+  left: normal(-1, 0, 0),
+}
+export const mapNomalizeFaceNormal = (faceName: FaceName) => NOMARILIZE_FACE_NORMAL[faceName]
+export const mapNomalizeFaceColorNormal = (faceColor: FaceColor | undefined) => mapNomalizeFaceNormal(mapColorToFace(faceColor))
 
 const SLICE: Record<SliceName, { center: vec3; rotationAxis: vec3 }> = {
-  front: { center: center(0, 0, 1), rotationAxis: axis(0, 0, 1) },
-  vleft: { center: center(0, 0, 0), rotationAxis: axis(0, 0, 1) },
-  back: { center: center(0, 0, -1), rotationAxis: axis(0, 0, -1) },
-  up: { center: center(0, 1, 0), rotationAxis: axis(0, 1, 0) },
-  hfront: { center: center(0, 0, 0), rotationAxis: axis(0, 1, 0) },
-  down: { center: center(0, -1, 0), rotationAxis: axis(0, -1, 0) },
-  right: { center: center(1, 0, 0), rotationAxis: axis(1, 0, 0) },
-  vfront: { center: center(0, 0, 0), rotationAxis: axis(1, 0, 0) },
-  left: { center: center(-1, 0, 0), rotationAxis: axis(-1, 0, 0) },
+  front: { center: center(0, 0, 1), rotationAxis: NOMARILIZE_FACE_NORMAL.front },
+  vleft: { center: center(0, 0, 0), rotationAxis: NOMARILIZE_FACE_NORMAL.front },
+  back: { center: center(0, 0, -1), rotationAxis: NOMARILIZE_FACE_NORMAL.back },
+  up: { center: center(0, 1, 0), rotationAxis: NOMARILIZE_FACE_NORMAL.up },
+  hfront: { center: center(0, 0, 0), rotationAxis: NOMARILIZE_FACE_NORMAL.up },
+  down: { center: center(0, -1, 0), rotationAxis: NOMARILIZE_FACE_NORMAL.down },
+  right: { center: center(1, 0, 0), rotationAxis: NOMARILIZE_FACE_NORMAL.right },
+  vfront: { center: center(0, 0, 0), rotationAxis: NOMARILIZE_FACE_NORMAL.right },
+  left: { center: center(-1, 0, 0), rotationAxis: NOMARILIZE_FACE_NORMAL.left },
 }
 
 export class PuzzleCude {
@@ -49,16 +76,17 @@ export class PuzzleCude {
     this.cubes.forEach((cube) => cubeRenderer.add(cube))
   }
 
-  async do(directivesStr: string) {
-    const directives = directivesStr.split(" ").filter(Boolean).map((str) => {
-      assert(!!str, `directivesStr: "${directivesStr}" should not have emtpy string.`)
+  async do(directives: string | string[]) {
+    const strArr = typeof directives === 'string' ? directives.split(" ") : directives
+    const _directives = strArr.filter(Boolean).map((str) => {
+      assert(!!str, `directivesStr: "${directives}" should not have emtpy string.`)
       const direction: RotationDirection = str.endsWith(`'`) ? 'counterclockwise' : 'clockwise'
       const sliceNameShort = str.endsWith(`'`) ? str.slice(0, str.length - 1) : str
       const sliceName = SLICE_NAME_SHORT[sliceNameShort]
       assert(sliceName !== undefined, `${sliceNameShort} should have coresponding sliceName.`)
       return { direction, sliceName }
     })
-    for (const { sliceName, direction } of directives) {
+    for (const { sliceName, direction } of _directives) {
       await this.rotateSlice(sliceName, direction)
     }
   }
@@ -134,61 +162,20 @@ export class PuzzleCude {
       return vec3.equals(_center, center)
     })
     assert(centerCube !== undefined, `centerCube should be find at ${center}`)
-
-    let cubes: Cube[] = this.cubes
-    const slice = (cubes: Cube[], axis: Partial<Record<'x' | 'y' | 'z', number>>) => {
-      const isUndefinedOrEqual = (a: number | undefined, b: number) => {
-        // fix percision when comparing
-        return a === undefined || Math.abs(a - b) < 0.001
-      }
-
-      return cubes.filter((cube) => {
-        const center = vec3.create()
-        vec3.transformMat4(center, cube.center, cube.transform.localToWorld())
-
-        const isOnAxis =
-          isUndefinedOrEqual(axis.x, center[0]) &&
-          isUndefinedOrEqual(axis.y, center[1]) &&
-          isUndefinedOrEqual(axis.z, center[2])
-        return isOnAxis
-      })
-    }
-    switch (name) {
-      case 'front':
-        cubes = slice(cubes, { z: center[2] })
-        break
-      case 'back':
-        cubes = slice(cubes, { z: center[2] })
-        break
-      case 'up':
-        cubes = slice(cubes, { y: center[1] })
-        break
-      case 'down':
-        cubes = slice(cubes, { y: center[1] })
-        break
-      case 'left':
-        cubes = slice(cubes, { x: center[0] })
-        break
-      case 'right':
-        cubes = slice(cubes, { x: center[0] })
-        break
-      case 'vfront':
-        cubes = slice(cubes, { x: center[0] })
-        break
-      case 'hfront':
-        cubes = slice(cubes, { y: center[1] })
-        break
-      case 'vleft':
-        cubes = slice(cubes, { z: center[2] })
-        break
-      default:
-        throw new Error('unvalid slice name!')
-    }
+    const cubes = this.cubes.filter(cube => this.isCubeAtSlice(cube, name))
     return {
       name,
       cubes,
       centerCube,
       rotationAxis,
     }
+  }
+
+  isCubeAtSlice(cube: Cube, sliceName: SliceName) {
+    const slice = SLICE[sliceName]
+    const center = vec3.create()
+    vec3.transformMat4(center, cube.center, cube.transform.localToWorld())
+    const isOrth = equal(vec3.dot(slice.rotationAxis, vec3.subtract(vec3.create(), slice.center, center)), 0)
+    return isOrth
   }
 }
