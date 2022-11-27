@@ -5,6 +5,7 @@ import { mapNomalizeFaceNormal, PuzzleCude, mapSliceNameToShort, mapNomalizeFace
 import { equal, equals } from './utils'
 import { findLast, find } from 'lodash'
 
+// TODO: refactor
 
 const isSameWithColorNormal = (color: FaceColor, normal: vec3) => {
   const colorNormal = mapNomalizeFaceColorNormal(color)
@@ -86,36 +87,36 @@ export class PuzzleCubeResolver {
   async solve() {
     console.log('-- nomarlizing cube faces --');
     await this.nomarlizeCubeFaces()
-    console.log('-- doing step1 white edges --');
-    await this.step1_WhiteEdges()
-    console.log('-- doing step2 finish white faces --');
-    await this.step2_FinishWhiteFace()
-    console.log('-- doing step3 center layer --');
-    await this.setp3_CenterLayer()
-    console.log('-- all done! --')
+    // console.log('-- doing step1 white edges --');
+    // await this.step1_WhiteEdges()
+    // console.log('-- doing step2 finish white faces --');
+    // await this.step2_FinishWhiteFace()
+    // console.log('-- doing step3 center layer --');
+    // await this.setp3_CenterLayer()
+    // console.log('-- all done! --')
   }
 
   async nomarlizeCubeFaces() {
     const rotateWhiteSliceToUpper = async () => {
-      const whiteSlice = findSliceByColor('white', this.puzzleCube)
-      const directivesMap: Record<FaceName, string> = {
+      const whiteSlice = this.puzzleCube.getFaceByColor('white')
+      const strategies: Record<FaceName, string> = {
         'up': '',
-        'down': `L' MRL R L' MRL R`,
+        'down': `L' L' MRL MRL R R`,
         'front': `L' MRL R`,
         'back': `L MRL' R'`,
         'right': `F' MFB' B`,
         'left': `F MFB B'`,
       }
-      const directives = directivesMap[whiteSlice.name as FaceName]
+      const directives = strategies[whiteSlice.name as FaceName]
       await this.puzzleCube.do(directives)
     }
     const rotatRedSliceToFront = async () => {
-      const redSlice = findSliceByColor('white', this.puzzleCube)
+      const redSlice = this.puzzleCube.getFaceByColor('red')
       const directivesMap: Record<FaceName, string> = {
         'up': ``,
         'down': ``,
         'front': ``,
-        'back': `U MUD D' U MUD D'`,
+        'back': `U U MUD MUD D' D'`,
         'right': `U MUD D'`,
         'left': `U' MUD' D`,
       }
@@ -303,7 +304,7 @@ export class PuzzleCubeResolver {
     }
     const colorFacing = (edge: Cube, face: FaceName) => {
       const color = Object.values(edge.faceColorNames).find(color => colorFacingOf(color, edge) === face)
-      assert(!!color, `edge color not facing up should be founded. ${JSON.stringify(edge)}`)
+      assert(!!color, `edge color not facing up should be founded.`)
       return color
     }
     const rotateToColorFace = async (edge: Cube) => {
