@@ -46,6 +46,9 @@ export class Cube {
     back: 'orange',
     right: 'blue',
   }
+  get colors() {
+    return Object.values(this.faceColorNames)
+  }
   get faceColors(): Record<FaceName, vec4> {
     return {
       back: this.toColorVec4(this.faceColorNames.back),
@@ -87,9 +90,23 @@ export class Cube {
     }
     assert(!!color, 'color must not be undefined')
     const faceName = COLOR_FACE_MAP[color]
-    const faceNormal = this.getFaceNormal(faceName)
-    const facing = this.parent.getFaceByNormal(faceNormal)
-    return { color, faceNormal, face: faceName, facing: facing.name }
+    const getFaceNormal = () => this.getFaceNormal(faceName)
+    const getFacing = () => this.parent.getFaceByNormal(getFaceNormal()).name
+    return {
+      color,
+      face: faceName,
+      get faceNormal() {
+        return getFaceNormal()
+      },
+      get facing() {
+        return getFacing() as FaceName
+      }
+    }
+  }
+  getAdjacentFacesOfColor(color: FaceColor) {
+    return this.colors
+      .filter(_color => _color !== color)
+      .map(color => this.getFaceByColor(color))
   }
   getColorByFace(face: FaceName) {
     return this.faceColorNames[face]

@@ -6,6 +6,9 @@ class AssertionError extends Error {
 	}
 }
 
-export function assert(condition: boolean, message?: string): asserts condition {
-	if (!condition) throw new AssertionError(message)
+export function assert(condition: boolean, message?: string, ...rest: any): asserts condition {
+	if (!condition) {
+		console.error(...rest)
+		throw new AssertionError(message)
+	}
 }
