@@ -1,13 +1,11 @@
 import { vec3, vec4 } from 'gl-matrix'
 import { assert } from './assert'
+import { PuzzleCude } from './puzzle-cube'
 import { Transform } from './transform'
 
-export const FACE_NAMES = ['up', 'front', 'left', 'down', 'back', 'right'] as const
-export type FaceName = typeof FACE_NAMES[number]
-
-export type FaceColor = 'red' | 'green' | 'blue' | 'yellow' | 'orange' | 'white'
-
 export type CubeType = 'center' | 'edge' | 'corner'
+export type FaceColor = 'red' | 'green' | 'blue' | 'yellow' | 'orange' | 'white'
+export type FaceName = typeof FACE_NAMES[number]
 
 export const COLOR: Record<FaceColor, vec4> = {
   red: vec4.fromValues(192 / 255, 72 / 255, 81 / 255, 1),
@@ -17,12 +15,8 @@ export const COLOR: Record<FaceColor, vec4> = {
   white: vec4.fromValues(251 / 255, 236 / 255, 222 / 255, 1),
   orange: vec4.fromValues(248 / 255, 107 / 255, 29 / 255, 1),
 }
-const BLACK_COLOR = vec4.fromValues(79 / 255, 64 / 255, 50 / 255, 1)
-const mapColor = (colorName: FaceColor | undefined): vec4 => {
-  if (!colorName) return BLACK_COLOR
-  else return COLOR[colorName]
-}
-
+export const BLACK_COLOR = vec4.fromValues(79 / 255, 64 / 255, 50 / 255, 1)
+export const FACE_NAMES = ['up', 'front', 'left', 'down', 'back', 'right'] as const
 const COLOR_FACE_MAP: Record<Exclude<FaceColor, 'black'>, FaceName> = {
   white: 'up',
   red: 'front',
@@ -31,12 +25,20 @@ const COLOR_FACE_MAP: Record<Exclude<FaceColor, 'black'>, FaceName> = {
   yellow: 'down',
   blue: 'right',
 } as const
+
+/** @deprecated */
 export const mapColorToFace = (color: FaceColor | undefined) => {
   assert(!!color, 'color must not be undefined')
   return COLOR_FACE_MAP[color]
 }
-const defaultFaceColors = (): Partial<Record<FaceName, FaceColor>> => {
-  return {
+
+export class Cube {
+  type: CubeType
+  front: vec3 = vec3.fromValues(0, 0, 1)
+  up: vec3 = vec3.fromValues(0, 1, 0)
+  size: number = 0.9
+  transform: Transform = new Transform()
+  faceColorNames: Record<FaceName, FaceColor> = {
     up: 'white',
     front: 'red',
     left: 'green',
@@ -44,51 +46,67 @@ const defaultFaceColors = (): Partial<Record<FaceName, FaceColor>> => {
     back: 'orange',
     right: 'blue',
   }
-}
-
-export class Cube {
-  faceColorNames = defaultFaceColors()
   get faceColors(): Record<FaceName, vec4> {
     return {
-      back: mapColor(this.faceColorNames.back),
-      down: mapColor(this.faceColorNames.down),
-      left: mapColor(this.faceColorNames.left),
-      front: mapColor(this.faceColorNames.front),
-      up: mapColor(this.faceColorNames.up),
-      right: mapColor(this.faceColorNames.right),
+      back: this.toColorVec4(this.faceColorNames.back),
+      down: this.toColorVec4(this.faceColorNames.down),
+      left: this.toColorVec4(this.faceColorNames.left),
+      front: this.toColorVec4(this.faceColorNames.front),
+      up: this.toColorVec4(this.faceColorNames.up),
+      right: this.toColorVec4(this.faceColorNames.right),
+    }
+  }
+  get faceNormals() {
+    return {
+      up: this.getFaceNormal('up'),
+      front: this.getFaceNormal('front'),
+      back: this.getFaceNormal('back'),
+      down: this.getFaceNormal('down'),
+      right: this.getFaceNormal('right'),
+      left: this.getFaceNormal('left'),
     }
   }
 
-  get faceNormals() {
-    const up = vec3.clone(this.up)
-    const front = vec3.clone(this.front)
-    const back = vec3.fromValues(0, 0, -1)
-    const down = vec3.fromValues(0, -1, 0)
-    const right = vec3.fromValues(1, 0, 0)
-    const left = vec3.fromValues(-1, 0, 0)
+  constructor(public center: vec3, colorFaces: FaceName[], private parent: PuzzleCude) {
+    this.type = colorFaces.length === 3 ? 'corner' : colorFaces.length === 2 ? 'edge' : 'center'
+    const uncolorFaces: FaceName[] = FACE_NAMES.filter((face) => !colorFaces.includes(face))
+    uncolorFaces.forEach((face) => (delete this.faceColorNames[face]))
+  }
+  toColorVec4(color: FaceColor) {
+    if (!color) return BLACK_COLOR
+    else return COLOR[color]
+  }
+  getFaceByColor(color: FaceColor) {
+    const COLOR_FACE_MAP: Record<FaceColor, FaceName> = {
+      white: 'up',
+      red: 'front',
+      green: 'left',
+      orange: 'back',
+      yellow: 'down',
+      blue: 'right',
+    }
+    assert(!!color, 'color must not be undefined')
+    const faceName = COLOR_FACE_MAP[color]
+    const faceNormal = this.getFaceNormal(faceName)
+    const facing = this.parent.getFaceByNormal(faceNormal)
+    return { color, faceNormal, face: faceName, facing: facing.name }
+  }
+  getColorByFace(face: FaceName) {
+    return this.faceColorNames[face]
+  }
+  getFaceNormal(face: FaceName) {
     const localToWordMatrix = this.transform.localToWorld()
     function toWorld(normal: vec3) {
       return vec3.transformMat4(normal, normal, localToWordMatrix)
     }
-    return {
-      up: toWorld(up),
-      front: toWorld(front),
-      back: toWorld(back),
-      down: toWorld(down),
-      right: toWorld(right),
-      left: toWorld(left),
+    const normal = {
+      up: () => toWorld(vec3.clone(this.up)),
+      front: () => toWorld(vec3.clone(this.front)),
+      back: () => toWorld(vec3.fromValues(0, 0, -1)),
+      down: () => toWorld(vec3.fromValues(0, -1, 0)),
+      right: () => toWorld(vec3.fromValues(1, 0, 0)),
+      left: () => toWorld(vec3.fromValues(-1, 0, 0)),
     }
-  }
-
-  public front: vec3 = vec3.fromValues(0, 0, 1)
-  public up: vec3 = vec3.fromValues(0, 1, 0)
-  public size: number = 0.9
-  public transform: Transform = new Transform()
-  public type: CubeType
-
-  constructor(public center: vec3, colorFaces: FaceName[]) {
-    this.type = colorFaces.length === 3 ? 'corner' : colorFaces.length === 2 ? 'edge' : 'center'
-    const uncolorFaces: FaceName[] = FACE_NAMES.filter((face) => !colorFaces.includes(face))
-    uncolorFaces.forEach((face) => (delete this.faceColorNames[face]))
+    return normal[face]()
   }
 }
