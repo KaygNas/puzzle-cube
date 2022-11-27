@@ -115,7 +115,6 @@ export class PuzzleCubeResolver {
       const whiteCube = upperLayer.cubes.find((cube) => cube.type === 'edge' && cube.colors.includes('white') && !puzzleCube.isCubeColorAllFacingCorrect(cube))
       if (!whiteCube) return false
 
-      assert(whiteCube.type === 'edge', 'white should be a edge.')
       const moveToDownLayer = (facing: FaceName) => puzzleCube.do(makeDirectives(facing, 2))
       const whiteSticker = whiteCube.getFaceByColor('white')
       if (whiteSticker.facing === 'up') {
