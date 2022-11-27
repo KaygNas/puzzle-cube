@@ -56,8 +56,8 @@ export class PuzzleCubeResolver {
     await this.nomarlizeCubeFaces()
     console.log('-- doing step1 white edges --');
     await this.step1_WhiteEdges()
-    // console.log('-- doing step2 finish white faces --');
-    // await this.step2_FinishWhiteFace()
+    console.log('-- doing step2 finish white faces --');
+    await this.step2_FinishWhiteFace()
     // console.log('-- doing step3 center layer --');
     // await this.setp3_CenterLayer()
     // console.log('-- all done! --')
@@ -173,42 +173,51 @@ export class PuzzleCubeResolver {
   }
 
   async step2_FinishWhiteFace() {
+    const { puzzleCube } = this
     // put the white corner to the upper layer or down layer at it's coresponding position
     // repeat R' D' R D until it facing upper
-    const atCorrectCorner = (cube: Cube, facesAt: FaceName[]) => {
-      return facesAt.every(face => !!cube.faceColorNames[face])
-    }
-
-    const isAtCorrectCorner = (cube: Cube) => atCorrectCorner(
-      cube,
-      this.puzzleCube.facesCubeAt(cube).filter(face => face !== 'down')
-    )
-
-    const isAllCornerCorrect = () => {
-      const upperLayer = this.puzzleCube.getSlice('up')
-      return upperLayer.cubes.every(cube => colorFacingOf('white', cube) === 'up')
+    const isAtCorrectCorner = (cube: Cube, layer: 'up' | 'down' = 'up') => {
+      assert(cube.type === 'corner', 'cube is not corner.')
+      const cornerColors = cube.colors.map(color => cube.getFaceByColor(color))
+        .map(sticker => puzzleCube.getColorByFaceName(sticker.facing))
+      assert(cornerColors.length === 3, `cornerColor should has 3 colors: ${cornerColors}`)
+      const colors = cube.colors.filter(color => layer === 'down' ? color !== 'white' : true)
+      return colors.every(color => cornerColors.includes(color))
     }
 
     const correctWhiteCorner = async (whiteCorner: Cube) => {
-      const faces: FaceName[] = ['front', 'right', 'back', 'left', 'front']
-      const facesAt = this.puzzleCube.facesCubeAt(whiteCorner)
-      const rotationFace = find(faces, (_, i) => facesAt.includes(faces[i - 1]) && facesAt.includes(faces[i]), 1)
-      assert(!!rotationFace, `rotationFace of ${facesAt} should be founded.`)
-      const directive = mapSliceNameToShort(rotationFace)
-      const directives = `${directive}' D' ${directive} D`
+      const whiteSticker = whiteCorner.getFaceByColor('white')
+      assert(whiteSticker.facing !== 'up', 'white sticker should not facing up.')
 
-      while (!facingAllCorrect(whiteCorner, this.puzzleCube)) {
-        await this.puzzleCube.do(directives)
+      const stickers = whiteCorner.getAdjacentFacesOfColor('white').concat(whiteSticker)
+        .filter(sticker => sticker.facing !== 'up' && sticker.facing !== 'down')
+      assert(stickers.length === 2)
+
+      const location = puzzleCube.getCubeLocationOnFace(whiteCorner, stickers[0].facing)
+      if (location.includes('E')) {
+        await puzzleCube.rotateFaceToFront(stickers[0].facing)
+      }
+      else if (location.includes('W')) {
+        await puzzleCube.rotateFaceToFront(stickers[1].facing)
+      }
+      else {
+        assert(false, 'white sticker should not at other than NW or NE.')
+      }
+
+      let count = 0
+      while (!puzzleCube.isCubeColorAllFacingCorrect(whiteCorner)) {
+        await puzzleCube.do(`R' D' R D`)
+        count++
+        assert(count < 8, 'correct white corner need less than 8 times.')
       }
     }
 
     const correctWhiteCornerAtUpper = async () => {
-      const upperLayer = this.puzzleCube.getSlice('up')
+      const upperLayer = puzzleCube.getSlice('up')
       const whiteCorners = upperLayer.cubes
         .filter(cube => cube.type === 'corner'
-          && cube.faceColorNames.up === 'white'
-          && !facingAllCorrect(cube, this.puzzleCube)
-        )
+          && cube.colors.includes('white')
+          && !puzzleCube.isCubeColorAllFacingCorrect(cube))
       for (const whiteCorner of whiteCorners) {
         if (!isAtCorrectCorner(whiteCorner)) break
         await correctWhiteCorner(whiteCorner)
@@ -216,14 +225,21 @@ export class PuzzleCubeResolver {
     }
 
     const correctWhiteCornerAtDown = async () => {
-      const downLayer = this.puzzleCube.getSlice('down')
-      const whiteCorners = downLayer.cubes.filter(cube => cube.type === 'corner' && cube.faceColorNames.up === 'white')
+      const downLayer = puzzleCube.getSlice('down')
+      const whiteCorners = downLayer.cubes.filter(cube => cube.type === 'corner' && cube.colors.includes('white'))
       for (const whiteCorner of whiteCorners) {
-        while (!isAtCorrectCorner(whiteCorner)) {
-          await this.puzzleCube.do('D')
+        let count = 0
+        while (!isAtCorrectCorner(whiteCorner, 'down')) {
+          await puzzleCube.do('D')
+          count++
+          assert(count < 4, 'white corner should not rotate more that 4 times.', 'whiteCorner: ', whiteCorner)
         }
         await correctWhiteCorner(whiteCorner)
       }
+    }
+    const isAllCornerCorrect = () => {
+      const upperLayer = puzzleCube.getSlice('up')
+      return upperLayer.cubes.every(cube => puzzleCube.isCubeColorAllFacingCorrect(cube))
     }
     const rotateWhiteToDown = () => this.puzzleCube.do('L L MRL MRL R R')
 
