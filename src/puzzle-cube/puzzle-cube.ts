@@ -2,9 +2,10 @@ import { mat3, mat4, quat, vec3 } from 'gl-matrix'
 import { assert } from './assert'
 import { Cube, FaceColor, FaceName, FACE_NAMES, mapColorToFace } from './cube'
 import { CubeRenderer } from './cube-renderer'
-import { cubes as defaultCubes } from './cubes'
+import { createCubesFor } from './cubes'
 import { equal, equals } from './utils'
 
+export type Location = 'W' | 'E' | 'N' | 'S' | 'C' | 'NW' | 'SW' | 'NE' | 'SE'
 export type SliceName = FaceName | 'hfront' | 'vfront' | 'vleft'
 const SLICE_NAME_TO_SHORT: Record<SliceName, string> = {
   up: 'U',
@@ -67,7 +68,7 @@ const SLICE: Record<SliceName, { center: vec3; rotationAxis: vec3 }> = {
 }
 
 export class PuzzleCude {
-  private cubes: Cube[] = defaultCubes
+  private cubes = createCubesFor(this)
   private rotating = false
 
   constructor(private cubeRenderer: CubeRenderer) {
@@ -89,6 +90,18 @@ export class PuzzleCude {
     for (const { sliceName, direction } of _directives) {
       await this.rotateSlice(sliceName, direction)
     }
+  }
+
+  async rotateFaceToFront(faceName: FaceName) {
+    const strategies: Record<FaceName, string> = {
+      'front': '',
+      'right': `U MUD D'`,
+      'back': `U U MUD MUD D' D'`,
+      'left': `U' MUD' D`,
+      'up': `R' MRL' L`,
+      'down': `R MRL L'`,
+    }
+    return this.do(strategies[faceName])
   }
 
   async rotateSlice(sliceName: SliceName, direction: RotationDirection) {
@@ -178,31 +191,86 @@ export class PuzzleCude {
     const isOrth = equal(vec3.dot(slice.rotationAxis, vec3.subtract(vec3.create(), slice.center, center)), 0)
     return isOrth
   }
-
-  facesCubeAt(cube: Cube) {
-    return FACE_NAMES.filter(face => this.isCubeAtSlice(cube, face))
-  }
-
-  faceColorAt(color: FaceColor) {
+  getFaceByColor(color: FaceColor) {
     const centerCube = this.cubes.find(cube => cube.type === 'center' && Object.values(cube.faceColorNames).includes(color))
     assert(!!centerCube, `centerCube of color:${color} should be founded.`)
-    const face = FACE_NAMES.find(face => this.isCubeAtSlice(centerCube, face))
-    assert(!!face, `centerCube should be at any of faces: ${FACE_NAMES}.`)
-    return face
+    const faceName = FACE_NAMES.find(face => this.isCubeAtSlice(centerCube, face))
+    assert(!!faceName, `centerCube should be at any of faces: ${FACE_NAMES}.`)
+    return this.getSlice(faceName)
   }
-
-  colorOfFace(face: FaceName) {
+  getFaceByNormal(normal: vec3) {
+    const face = FACE_NAMES.map((faceName) => ({ faceName, normal: this.normalOfFace(faceName) })).find(face => equals(face.normal, normal))
+    assert(!!face, `face is not found of normal ${normal}`)
+    return this.getSlice(face.faceName);
+  }
+  getColorByFaceName(face: FaceName) {
     const slice = this.getSlice(face)
-    const color = slice.centerCube.faceColorNames[face]
-    assert(!!color, `centerCube of face ${face} should have color.`)
+    const color = slice.centerCube.colors[0]
+    assert(!!color, `centerCube of face ${face} should have color.`, '\nslice: ', slice)
     return color
   }
+  getCubeLocationOnFace(cube: Cube, faceName: FaceName): Location {
+    const facesCubeOn = FACE_NAMES.filter(face => this.isCubeAtSlice(cube, face))
+    assert(facesCubeOn.includes(faceName), `cube is not on face ${faceName}.`)
+    const LOCATION_TABLE: any = {
+      front: { left: 'W', right: 'E', up: 'N', down: 'S' },
+      right: { front: 'W', back: 'E', up: 'N', down: 'S' },
+      back: { right: 'W', left: 'E', up: 'N', down: 'S' },
+      left: { back: 'W', front: 'E', up: 'N', down: 'S' },
+      up: { left: 'W', right: 'E', back: 'N', front: 'S' },
+      down: { left: 'W', right: 'E', front: 'N', back: 'S' }
+    }
+    const getLocationOf = (faceName1: FaceName, faceName2: FaceName): Location => {
+      const location = LOCATION_TABLE[faceName1][faceName2]
+      assert(!!location, `location of ${faceName1}-${faceName2} do not exist.`)
+      return location
+    }
+    const otherFaceNames = facesCubeOn.filter(_faceName => _faceName !== faceName)
+    if (cube.type === 'edge') {
+      const [nextFaceName] = otherFaceNames
+      return getLocationOf(faceName, nextFaceName)
+    }
+    else if (cube.type === 'corner') {
+      const indexOfLocation = (location: string) => ['N', 'S', 'W', 'E'].indexOf(location)
+      const locations = otherFaceNames
+        .map((_faceName) => getLocationOf(faceName, _faceName))
+        .sort((a, b) => indexOfLocation(a) - indexOfLocation(b))
+      return locations.join('') as Location
+    }
+    else {
+      return 'C'
+    }
+  }
+
+  isCubeColorFacingCorrect(cube: Cube, cubeColor: FaceColor) {
+    const cubeFace = cube.getFaceByColor(cubeColor)
+    const cubeFaceNormal = cubeFace.faceNormal
+    const face = this.getFaceByNormal(cubeFaceNormal)
+    return face.centerCube.getColorByFace(cubeFace.face) === cubeFace.color
+  }
+  isCubeColorAllFacingCorrect(cube: Cube) {
+    return cube.colors.every(color => this.isCubeColorFacingCorrect(cube, color))
+  }
+
+  /** @deprecated */
+  getFacesByCube(cube: Cube) {
+    const faces = FACE_NAMES.filter(face => this.isCubeAtSlice(cube, face))
+    return faces
+  }
+  /** @deprecated */
+  facesCubeAt = this.getFacesByCube.bind(this)
+  /** @deprecated */
+  faceColorAt(color: FaceColor) {
+    return this.getFaceByColor(color).name as FaceName
+  }
+  /** @deprecated */
+  colorOfFace = this.getColorByFaceName.bind(this)
+  /** @deprecated */
+  faceOfNormal(normal: vec3) {
+    return this.getFaceByNormal(normal).name as FaceName
+  }
+  /** @deprecated */
   normalOfFace(face: FaceName) {
     return mapNomalizeFaceNormal(face)
-  }
-  faceOfNormal(normal: vec3) {
-    const face = FACE_NAMES.map((face) => this.normalOfFace(face)).find(n => equals(n, normal))
-    assert(!!face, `face is not found of normal ${normal}`)
-    return face;
   }
 }
