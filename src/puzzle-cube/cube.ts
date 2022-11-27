@@ -27,21 +27,21 @@ const COLOR_FACE_MAP: Record<Exclude<FaceColor, 'black'>, FaceName> = {
   white: 'up',
   red: 'front',
   green: 'left',
-  orange: 'down',
-  yellow: 'back',
+  orange: 'back',
+  yellow: 'down',
   blue: 'right',
 } as const
 export const mapColorToFace = (color: FaceColor | undefined) => {
   assert(!!color, 'color must not be undefined')
   return COLOR_FACE_MAP[color]
 }
-const defaultFaceColors = (): Record<FaceName, FaceColor | undefined> => {
+const defaultFaceColors = (): Partial<Record<FaceName, FaceColor>> => {
   return {
     up: 'white',
     front: 'red',
     left: 'green',
-    down: 'orange',
-    back: 'yellow',
+    down: 'yellow',
+    back: 'orange',
     right: 'blue',
   }
 }
@@ -89,6 +89,6 @@ export class Cube {
   constructor(public center: vec3, colorFaces: FaceName[]) {
     this.type = colorFaces.length === 3 ? 'corner' : colorFaces.length === 2 ? 'edge' : 'center'
     const uncolorFaces: FaceName[] = FACE_NAMES.filter((face) => !colorFaces.includes(face))
-    uncolorFaces.forEach((face) => (this.faceColorNames[face] = undefined))
+    uncolorFaces.forEach((face) => (delete this.faceColorNames[face]))
   }
 }

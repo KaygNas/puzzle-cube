@@ -1,6 +1,6 @@
 import { mat3, mat4, quat, vec3 } from 'gl-matrix'
 import { assert } from './assert'
-import { Cube, FaceColor, FaceName, mapColorToFace } from './cube'
+import { Cube, FaceColor, FaceName, FACE_NAMES, mapColorToFace } from './cube'
 import { CubeRenderer } from './cube-renderer'
 import { cubes as defaultCubes } from './cubes'
 import { equal } from './utils'
@@ -177,5 +177,9 @@ export class PuzzleCude {
     vec3.transformMat4(center, cube.center, cube.transform.localToWorld())
     const isOrth = equal(vec3.dot(slice.rotationAxis, vec3.subtract(vec3.create(), slice.center, center)), 0)
     return isOrth
+  }
+
+  facesCubeAt(cube: Cube) {
+    return FACE_NAMES.filter(face => this.isCubeAtSlice(cube, face))
   }
 }

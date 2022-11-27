@@ -8,9 +8,9 @@ const LAYER_ROTATE_BUTTONS = [
 	{ action: 'U', keyName: 'A' },
 	{ action: 'MUD', keyName: 'S' },
 	{ action: 'D', keyName: 'D' },
-	{ action: 'L', keyName: 'Z' },
-	{ action: 'MLR', keyName: 'X' },
-	{ action: 'R', keyName: 'C' },
+	{ action: 'R', keyName: 'Z' },
+	{ action: 'MRL', keyName: 'X' },
+	{ action: 'L', keyName: 'C' },
 ]
 
 const shiftKey = ref(false)

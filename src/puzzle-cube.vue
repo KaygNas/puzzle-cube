@@ -35,13 +35,13 @@ const onkeydown = (e: KeyboardEvent) => {
 			puzzleCube.rotateSlice('down', direction)
 			break
 		case 'z':
-			puzzleCube.rotateSlice('left', direction)
+			puzzleCube.rotateSlice('right', direction)
 			break
 		case 'x':
 			puzzleCube.rotateSlice('vfront', direction)
 			break
 		case 'c':
-			puzzleCube.rotateSlice('right', direction)
+			puzzleCube.rotateSlice('left', direction)
 			break
 		case 'enter':
 			e.shiftKey ? puzzleCubeSolver.scramble() : puzzleCubeSolver.solve()
