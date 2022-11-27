@@ -3,7 +3,7 @@ import { assert } from './assert'
 import { Cube, FaceColor, FaceName, FACE_NAMES, mapColorToFace } from './cube'
 import { CubeRenderer } from './cube-renderer'
 import { cubes as defaultCubes } from './cubes'
-import { equal } from './utils'
+import { equal, equals } from './utils'
 
 export type SliceName = FaceName | 'hfront' | 'vfront' | 'vleft'
 const SLICE_NAME_TO_SHORT: Record<SliceName, string> = {
@@ -159,7 +159,7 @@ export class PuzzleCude {
     const centerCube = this.cubes.find((cube) => {
       const _center = vec3.create()
       vec3.transformMat4(_center, cube.center, cube.transform.localToWorld())
-      return vec3.equals(_center, center)
+      return equals(_center, center)
     })
     assert(centerCube !== undefined, `centerCube should be find at ${center}`)
     const cubes = this.cubes.filter(cube => this.isCubeAtSlice(cube, name))
@@ -181,5 +181,28 @@ export class PuzzleCude {
 
   facesCubeAt(cube: Cube) {
     return FACE_NAMES.filter(face => this.isCubeAtSlice(cube, face))
+  }
+
+  faceColorAt(color: FaceColor) {
+    const centerCube = this.cubes.find(cube => cube.type === 'center' && Object.values(cube.faceColorNames).includes(color))
+    assert(!!centerCube, `centerCube of color:${color} should be founded.`)
+    const face = FACE_NAMES.find(face => this.isCubeAtSlice(centerCube, face))
+    assert(!!face, `centerCube should be at any of faces: ${FACE_NAMES}.`)
+    return face
+  }
+
+  colorOfFace(face: FaceName) {
+    const slice = this.getSlice(face)
+    const color = slice.centerCube.faceColorNames[face]
+    assert(!!color, `centerCube of face ${face} should have color.`)
+    return color
+  }
+  normalOfFace(face: FaceName) {
+    return mapNomalizeFaceNormal(face)
+  }
+  faceOfNormal(normal: vec3) {
+    const face = FACE_NAMES.map((face) => this.normalOfFace(face)).find(n => equals(n, normal))
+    assert(!!face, `face is not found of normal ${normal}`)
+    return face;
   }
 }
