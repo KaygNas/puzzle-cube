@@ -5,14 +5,6 @@ import { mapNomalizeFaceNormal, PuzzleCude, mapSliceNameToShort, mapNomalizeFace
 import { equal, equals } from './utils'
 import { findLast, find } from 'lodash'
 
-// TODO: refactor
-
-const isSameWithColorNormal = (color: FaceColor, normal: vec3) => {
-  const colorNormal = mapNomalizeFaceColorNormal(color)
-  const angle = vec3.angle(colorNormal, normal)
-  return equal(angle, 0)
-}
-
 const isFacing = (sourceFace: FaceName, targetFace: FaceName, cube: Cube) => {
   // TODO: fix
   return equals(cube.faceNormals[sourceFace], mapNomalizeFaceNormal(targetFace))
@@ -39,32 +31,7 @@ const colorFacingOf = (color: FaceColor, cube: Cube) => {
 const makeDirectives = (faceName: FaceName, time: number, counterClockwise = false) => {
   return new Array(time).fill(mapSliceNameToShort(faceName) + (counterClockwise ? `'` : ''))
 }
-const findAdjacentStick = (cube: Cube, targetFace: FaceName) => {
-  // TODO: faces to serach is depend on the targetFace
-  const faces: FaceName[] = ['front', 'back', 'left', 'right']
-  const adjacentStick = faces
-    .map(face => {
-      return { face, faceNormal: cube.faceNormals[face], color: cube.faceColorNames[face] }
-    })
-    .filter(({ color }) => !!color)
-    .map(({ faceNormal, color }) => {
-      const facing = colorFacingOf(color!, cube)
-      return { facing, faceNormal, color: color! }
-    })
-  assert(adjacentStick.length > 0, 'adjacentStick must exist')
-  return adjacentStick
-}
-const findSliceByColor = (color: Exclude<FaceColor, 'black'>, puzzleCube: PuzzleCude) => {
-  const slice = FACE_NAMES
-    .map((face) => puzzleCube.getSlice(face))
-    .find((slice) => {
-      const face = mapColorToFace(color)
-      assert(face !== undefined, `color ${color} of ${face} should map.`)
-      return slice.centerCube.faceColorNames[face] === color
-    })
-  assert(slice !== undefined, 'slice should be found!')
-  return slice
-}
+
 /**
  * Reference: https://rubikscu.be/#tutorial
  */
@@ -87,8 +54,8 @@ export class PuzzleCubeResolver {
   async solve() {
     console.log('-- nomarlizing cube faces --');
     await this.nomarlizeCubeFaces()
-    // console.log('-- doing step1 white edges --');
-    // await this.step1_WhiteEdges()
+    console.log('-- doing step1 white edges --');
+    await this.step1_WhiteEdges()
     // console.log('-- doing step2 finish white faces --');
     // await this.step2_FinishWhiteFace()
     // console.log('-- doing step3 center layer --');
@@ -128,6 +95,7 @@ export class PuzzleCubeResolver {
   }
 
   async step1_WhiteEdges() {
+    const { puzzleCube } = this
     // check whether the white cross finished
     // if not locate the white edge cube and move it to the down layer
     // 1. at up layer: make 2 rotation
@@ -136,83 +104,62 @@ export class PuzzleCubeResolver {
     //    a. white facing down: F F
     //    b. else: D R F' R' 
     const checkPlusFormed = () => {
-      const whiteLayer = this.puzzleCube.getSlice('up')
+      const whiteLayer = puzzleCube.getFaceByColor('white')
       return whiteLayer.cubes
         .filter(cube => cube.type === 'edge')
-        .every((cube) => colorFacingOf('white', cube) === 'up')
+        .every((cube) => puzzleCube.isCubeColorAllFacingCorrect(cube))
     }
 
     const tryUpperLayer = async () => {
-      const upperLayer = this.puzzleCube.getSlice('up')
-      const white = upperLayer.cubes.find((cube) => {
-        if (cube.type === 'edge' && cube.faceColorNames.up === 'white') {
-          const [adjacentStick] = findAdjacentStick(cube, 'up')
-          // not facing the correct face
-          return !isSameWithColorNormal(adjacentStick.color, adjacentStick.faceNormal)
-        } else {
-          return false
-        }
-      })
-      if (!white) return false
+      const upperLayer = puzzleCube.getSlice('up')
+      const whiteCube = upperLayer.cubes.find((cube) => cube.type === 'edge' && cube.colors.includes('white') && !puzzleCube.isCubeColorAllFacingCorrect(cube))
+      if (!whiteCube) return false
 
-      assert(white.type === 'edge', 'white should be a edge.')
-      const isFacingUp = isFacing('up', 'up', white)
-      if (isFacingUp) {
-        const [adjacentStick] = findAdjacentStick(white, 'up')
-        await this.puzzleCube.do(makeDirectives(adjacentStick.facing, 2))
+      assert(whiteCube.type === 'edge', 'white should be a edge.')
+      const moveToDownLayer = (facing: FaceName) => puzzleCube.do(makeDirectives(facing, 2))
+      const whiteSticker = whiteCube.getFaceByColor('white')
+      if (whiteSticker.facing === 'up') {
+        const [adjacentStick] = whiteCube.getAdjacentFacesOfColor(whiteSticker.color)
+        await moveToDownLayer(adjacentStick.facing)
       } else {
-        const facing = colorFacingOf('white', white)
-        await this.puzzleCube.do(makeDirectives(facing, 2))
+        await moveToDownLayer(whiteSticker.facing)
       }
       return true
     }
     const tryMiddleLayer = async () => {
-      const middleLayer = this.puzzleCube.getSlice('hfront')
-      const white = middleLayer.cubes.find((cube) => cube.type === 'edge' && cube.faceColorNames.up === 'white')
-      if (!white) return false
+      const middleLayer = puzzleCube.getSlice('hfront')
+      const whiteCube = middleLayer.cubes.find((cube) => cube.type === 'edge' && cube.colors.includes('white'))
+      if (!whiteCube) return false
 
-      const slices = FACE_NAMES.filter(face => this.puzzleCube.isCubeAtSlice(white, face))
-      const rotationFace = [
-        ['left', 'front'],
-        ['front', 'right'],
-        ['right', 'back'],
-        ['back', 'left'],
-      ].find((slicesAt) => slices.every(slice => slicesAt.includes(slice)))?.[0]
-      assert(rotationFace !== undefined, 'rotationFace should be founded.')
-      const directive = mapSliceNameToShort(rotationFace as FaceName)
-      await this.puzzleCube.do(`${directive} D ${directive}'`)
+      const whiteSticker = whiteCube.getFaceByColor('white')
+      const [adjacentSticker] = whiteCube.getAdjacentFacesOfColor('white')
+      const location = puzzleCube.getCubeLocationOnFace(whiteCube, whiteSticker.facing)
+      if (location === 'W') await puzzleCube.rotateFaceToFront(whiteSticker.facing)
+      else await puzzleCube.rotateFaceToFront(adjacentSticker.facing)
+      await puzzleCube.do(`L D L'`)
       return true
     }
     const tryDownLayer = async () => {
-      const downLayer = this.puzzleCube.getSlice('down')
-      const white = downLayer.cubes.find((cube) => cube.type === 'edge' && cube.faceColorNames.up === 'white')
-      if (!white) return
+      const downLayer = puzzleCube.getSlice('down')
+      const whiteCube = downLayer.cubes.find((cube) => cube.type === 'edge' && cube.colors.includes('white'))
+      if (!whiteCube) return
 
-      const isFacingDown = isFacing('up', 'down', white)
-      if (isFacingDown) {
+      const whiteSticker = whiteCube.getFaceByColor('white')
+      const [adjacentSticker] = whiteCube.getAdjacentFacesOfColor('white')
+      if (whiteSticker.facing === 'down') {
         // the adjacentColor and where it facing is needed
         // in order to figure out how many time to rotate the down layer
-        const [adjacentStick] = findAdjacentStick(white, 'up')
-        const colorNormal = mapNomalizeFaceColorNormal(adjacentStick.color)
-        const angle = vec3.angle(adjacentStick.faceNormal, colorNormal)
-        const rotateTime = Math.round(angle / (Math.PI / 2))
-        const counterClockwise = vec3.angle(vec3.cross(vec3.create(), adjacentStick.faceNormal, colorNormal), mapNomalizeFaceNormal('up')) > 0
-        const colorFace = mapColorToFace(adjacentStick.color)
-        const directives = makeDirectives('down', rotateTime, counterClockwise).concat(makeDirectives(colorFace, 2))
-        await this.puzzleCube.do(directives)
-      }
-      else {
-        const [adjacentStick] = findAdjacentStick(white, 'up')
-        const colorNormal = mapNomalizeFaceColorNormal(adjacentStick.color)
-        const angle = vec3.angle(white.faceNormals.up, colorNormal)
-        const rotateTime = Math.round(angle / (Math.PI / 2))
-        const counterClockwise = vec3.angle(vec3.cross(vec3.create(), adjacentStick.faceNormal, colorNormal), mapNomalizeFaceNormal('up')) < 0
-        const colorFace = mapColorToFace(adjacentStick.color)
-        const faces: FaceName[] = ['front', 'right', 'back', 'left']
-        const [directive1, directive2] = [colorFace, faces[(faces.indexOf(colorFace) + 1) % faces.length]].map(mapSliceNameToShort)
-        const directives = makeDirectives('down', rotateTime, counterClockwise)
-          .concat([`D`, directive2, `${directive1}'`, `${directive2}'`])
-        await this.puzzleCube.do(directives)
+        while (puzzleCube.getColorByFaceName(adjacentSticker.facing) !== adjacentSticker.color) {
+          await puzzleCube.do('D')
+        }
+        await puzzleCube.rotateFaceToFront(adjacentSticker.facing)
+        await puzzleCube.do('F F')
+      } else {
+        while (puzzleCube.getColorByFaceName(whiteSticker.facing) !== adjacentSticker.color) {
+          await puzzleCube.do('D')
+        }
+        await puzzleCube.rotateFaceToFront(whiteSticker.facing)
+        await puzzleCube.do(`D R F' R'`)
       }
     }
 
@@ -222,7 +169,7 @@ export class PuzzleCubeResolver {
         || await tryMiddleLayer()
       await tryDownLayer()
       count++
-      assert(count < 12, 'forming plus should not try more than 100 times.')
+      assert(count < 8, 'forming plus should not try more than 8 times.')
     }
   }
 
