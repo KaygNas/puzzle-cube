@@ -33,7 +33,9 @@ export class PuzzleCubeResolver {
     console.log('-- doing step2 finish white faces --');
     await this.step2_FinishWhiteFace()
     console.log('-- doing step3 center layer --');
-    await this.setp3_CenterLayer()
+    await this.step3_CenterLayer()
+    console.log('-- doing step4 yellow cross --');
+    await this.step4_YellowCross()
     console.log('-- all done! --')
   }
 
@@ -191,9 +193,25 @@ export class PuzzleCubeResolver {
         .filter(cube => cube.type === 'corner'
           && cube.colors.includes('white')
           && !puzzleCube.isCubeColorAllFacingCorrect(cube))
+
+      const moveCornerToDown = async (corner: Cube) => {
+        const isAnyWhiteAtDownLayer = puzzleCube.getSlice('down').cubes
+          .some(cube => cube.colors.includes('white'))
+        if (isAnyWhiteAtDownLayer) return
+
+        const colorNotUp = corner.colors.find(color => corner.getFaceByColor(color).facing !== 'up')
+        assert(!!colorNotUp)
+        const facing = corner.getFaceByColor(colorNotUp).facing
+        const location = puzzleCube.getCubeLocationOnFace(corner, facing)
+        await puzzleCube.rotateFaceToFront(facing)
+        assert(location === 'NE' || location === 'NW')
+        if (location === 'NE') puzzleCube.do(`R' D R`)
+        else puzzleCube.do(`L D L'`)
+      }
+
       for (const whiteCorner of whiteCorners) {
-        if (!isAtCorrectCorner(whiteCorner)) break
-        await correctWhiteCorner(whiteCorner)
+        if (!isAtCorrectCorner(whiteCorner)) await moveCornerToDown(whiteCorner);
+        else await correctWhiteCorner(whiteCorner)
       }
     }
 
@@ -215,7 +233,6 @@ export class PuzzleCubeResolver {
       return upperLayer.cubes.every(cube => puzzleCube.isCubeColorAllFacingCorrect(cube))
     }
     const rotateWhiteToDown = () => this.puzzleCube.do('L L MRL MRL R R')
-    // TODO: solve all white at upper but at switched position.
     let count = 0
     while (!isAllCornerCorrect()) {
       await correctWhiteCornerAtUpper()
@@ -226,7 +243,7 @@ export class PuzzleCubeResolver {
     await rotateWhiteToDown()
   }
 
-  async setp3_CenterLayer() {
+  async step3_CenterLayer() {
     // find the upper layer edge
     // move it to coresponding face
     // do the left or right algorithm to move it to the center layer
@@ -296,7 +313,26 @@ export class PuzzleCubeResolver {
       await moveStuckedEdgeFromCenterLayerToUpper()
       await correctEdgesOfUpperLayer()
       count++
-      assert(count < 4, 'correcting center layer should run less than 4 times.')
+      assert(count < 8, 'correcting center layer should run less than 8 times.')
+    }
+  }
+
+  async step4_YellowCross() {
+    // do F R U R' U' F'
+    // until corss formed
+    const { puzzleCube } = this
+    const yellowLayer = puzzleCube.getFaceByColor('yellow')
+    assert(yellowLayer.name === 'up', 'yellowLayer should facing up.')
+    const isCorssFormed = () => {
+      const edges = yellowLayer.cubes.filter(cube => cube.type === 'edge')
+      return edges.every(cube => cube.getColorByFacing('up') === 'yellow')
+    }
+
+    let count = 0
+    while (!isCorssFormed()) {
+      await puzzleCube.do(`F R U R' U' F'`)
+      count++
+      assert(count < 12, 'doing to form yellow cross should less than 12 times.')
     }
   }
 }
