@@ -118,7 +118,7 @@ export class PuzzleCude {
         cube.transform.rotate(slice.rotationAxis, drad)
       })
       this.render()
-    }, 200).finally(() => {
+    }, import.meta.env.DEV ? 10 : 200).finally(() => {
       this.rotating = false
     })
   }
@@ -209,6 +209,10 @@ export class PuzzleCude {
     assert(!!color, `centerCube of face ${face} should have color.`, '\nslice: ', slice)
     return color
   }
+  getColorsOfCubeFacing(cube: Cube) {
+    return cube.colors.map(color => cube.getFaceByColor(color))
+      .map(sticker => this.getColorByFaceName(sticker.facing))
+  }
   getCubeLocationOnFace(cube: Cube, faceName: FaceName): Location {
     const facesCubeOn = FACE_NAMES.filter(face => this.isCubeAtSlice(cube, face))
     assert(facesCubeOn.includes(faceName), `cube is not on face ${faceName}.`)
@@ -250,6 +254,10 @@ export class PuzzleCude {
   }
   isCubeColorAllFacingCorrect(cube: Cube) {
     return cube.colors.every(color => this.isCubeColorFacingCorrect(cube, color))
+  }
+  isCubeAtCorrectPosition(cube: Cube) {
+    const colors = this.getColorsOfCubeFacing(cube)
+    return cube.colors.every(color => colors.includes(color))
   }
 
   /** @deprecated */

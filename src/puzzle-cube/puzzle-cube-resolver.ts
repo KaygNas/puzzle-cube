@@ -1,33 +1,7 @@
-import { vec3 } from 'gl-matrix'
 import { assert } from './assert'
-import { Cube, FaceColor, FaceName, FACE_NAMES, mapColorToFace } from './cube'
-import { mapNomalizeFaceNormal, PuzzleCude, mapSliceNameToShort, mapNomalizeFaceColorNormal, SliceName } from './puzzle-cube'
-import { equal, equals } from './utils'
-import { findLast, find } from 'lodash'
+import { Cube, FaceName, FACE_NAMES } from './cube'
+import { PuzzleCude, mapSliceNameToShort } from './puzzle-cube'
 
-const isFacing = (sourceFace: FaceName, targetFace: FaceName, cube: Cube) => {
-  // TODO: fix
-  return equals(cube.faceNormals[sourceFace], mapNomalizeFaceNormal(targetFace))
-}
-const isFacingCorrect = (sourceColor: FaceColor, targetColor: FaceColor, cube: Cube, puzzleCube: PuzzleCude) => {
-  const cubeFaceNormal = cube.faceNormals[mapColorToFace(sourceColor)]
-  const puzzleCubeFaceNormal = mapNomalizeFaceNormal(puzzleCube.faceColorAt(targetColor))
-  const angle = vec3.angle(cubeFaceNormal, puzzleCubeFaceNormal)
-  return equal(angle, 0)
-}
-const facingAllCorrect = (cube: Cube, puzzleCube: PuzzleCude) => {
-  const faceColors = Object.values(cube.faceColorNames)
-  return faceColors.every(color => isFacingCorrect(color, color, cube, puzzleCube))
-}
-const facingOf = (sourceFace: FaceName, cube: Cube) => {
-  const face = FACE_NAMES.find(face => isFacing(sourceFace, face, cube))
-  assert(face !== undefined, `cube should at any of faces: ${FACE_NAMES}.`)
-  return face
-}
-const colorFacingOf = (color: FaceColor, cube: Cube) => {
-  const sourceFace = mapColorToFace(color)
-  return facingOf(sourceFace, cube)
-}
 const makeDirectives = (faceName: FaceName, time: number, counterClockwise = false) => {
   return new Array(time).fill(mapSliceNameToShort(faceName) + (counterClockwise ? `'` : ''))
 }
@@ -58,9 +32,9 @@ export class PuzzleCubeResolver {
     await this.step1_WhiteEdges()
     console.log('-- doing step2 finish white faces --');
     await this.step2_FinishWhiteFace()
-    // console.log('-- doing step3 center layer --');
-    // await this.setp3_CenterLayer()
-    // console.log('-- all done! --')
+    console.log('-- doing step3 center layer --');
+    await this.setp3_CenterLayer()
+    console.log('-- all done! --')
   }
 
   async nomarlizeCubeFaces() {
@@ -178,8 +152,7 @@ export class PuzzleCubeResolver {
     // repeat R' D' R D until it facing upper
     const isAtCorrectCorner = (cube: Cube, layer: 'up' | 'down' = 'up') => {
       assert(cube.type === 'corner', 'cube is not corner.')
-      const cornerColors = cube.colors.map(color => cube.getFaceByColor(color))
-        .map(sticker => puzzleCube.getColorByFaceName(sticker.facing))
+      const cornerColors = puzzleCube.getColorsOfCubeFacing(cube)
       assert(cornerColors.length === 3, `cornerColor should has 3 colors: ${cornerColors}`)
       const colors = cube.colors.filter(color => layer === 'down' ? color !== 'white' : true)
       return colors.every(color => cornerColors.includes(color))
@@ -242,7 +215,7 @@ export class PuzzleCubeResolver {
       return upperLayer.cubes.every(cube => puzzleCube.isCubeColorAllFacingCorrect(cube))
     }
     const rotateWhiteToDown = () => this.puzzleCube.do('L L MRL MRL R R')
-
+    // TODO: solve all white at upper but at switched position.
     let count = 0
     while (!isAllCornerCorrect()) {
       await correctWhiteCornerAtUpper()
@@ -259,70 +232,69 @@ export class PuzzleCubeResolver {
     // do the left or right algorithm to move it to the center layer
     // left: U' L' U L U F U' F'
     // right: U R U' R' U' F' U F
-    const colorNotFacing = (edge: Cube, face: FaceName) => {
-      const color = Object.values(edge.faceColorNames).find(color => colorFacingOf(color, edge) !== face)
-      assert(!!color, 'edge color not facing up should be founded.')
-      return color
-    }
-    const colorFacing = (edge: Cube, face: FaceName) => {
-      const color = Object.values(edge.faceColorNames).find(color => colorFacingOf(color, edge) === face)
-      assert(!!color, `edge color not facing up should be founded.`)
-      return color
-    }
-    const rotateToColorFace = async (edge: Cube) => {
+    const { puzzleCube } = this
+    const doLeftAligorithm = () => puzzleCube.do(`U' L' U L U F U' F'`)
+    const doRightAligorithm = () => puzzleCube.do(`U R U' R' U' F' U F`)
+    const rotateEdgeOfUpperLayerToCorrectFace = async (edge: Cube) => {
       // find the color not facing up
       // rotate the upper layer until it facing the correct face
-      const color = colorNotFacing(edge, 'up')
-      const targetFace = this.puzzleCube.faceColorAt(color)
-      while (colorFacingOf(color, edge) !== targetFace) {
-        await this.puzzleCube.do('U')
+      const colorNotUp = edge.colors.find(color => edge.getFaceByColor(color).facing !== 'up')
+      assert(!!colorNotUp, 'edge should have color not facing up.')
+      const targetFace = puzzleCube.getFaceByColor(colorNotUp).name
+      while (edge.getFaceByColor(colorNotUp).facing !== targetFace) {
+        await puzzleCube.do('U')
       }
-      while (colorFacingOf(color, edge) !== 'front') {
-        await this.puzzleCube.do(`U MUD D'`)
+      while (edge.getFaceByColor(colorNotUp).facing !== 'front') {
+        await puzzleCube.do(`U MUD D'`)
       }
     }
-    const runLeftAligorithm = () => this.puzzleCube.do(`U' L' U L U F U' F'`)
-    const runRightAligorithm = () => this.puzzleCube.do(`U R U' R' U' F' U F`)
-    const moveToCenterLayer = async (edge: Cube) => {
-      const colorUp = colorFacing(edge, 'up')
-      const targetFace = this.puzzleCube.faceColorAt(colorUp)
+    const moveEdgeOfUpperLayerToCenterLayer = async (edge: Cube) => {
+      const colorUp = edge.getColorByFacing('up')
+      const targetFace = puzzleCube.getFaceByColor(colorUp).name
       assert(targetFace === 'left' || targetFace === 'right', `traget face should not be ${targetFace}`)
       if (targetFace === 'left') {
-        await runLeftAligorithm()
+        await doLeftAligorithm()
       } else {
-        await runRightAligorithm()
+        await doRightAligorithm()
       }
     }
-    const edgesToCorrect = () => {
-      const upperLayer = this.puzzleCube.getSlice('up')
-      const edges = upperLayer.cubes.filter(cube => cube.type === 'edge' && !Object.values(cube.faceColorNames).includes('yellow'))
+    const getEdgesOfUpperLayerToCorrect = () => {
+      const upperLayer = puzzleCube.getSlice('up')
+      const uppperLayerColor = puzzleCube.getColorByFaceName('up')
+      const edges = upperLayer.cubes.filter(cube => cube.type === 'edge' && !cube.colors.includes(uppperLayerColor))
       return edges
     }
-    const centerLayerAllFacingCorrect = () => {
-      const centerLayer = this.puzzleCube.getSlice('hfront')
-      return centerLayer.cubes.every((cube) => facingAllCorrect(cube, this.puzzleCube))
+    const isCenterLayerAllFacingCorrect = () => {
+      const centerLayer = puzzleCube.getSlice('hfront')
+      return centerLayer.cubes.every((cube) => puzzleCube.isCubeColorAllFacingCorrect(cube))
+    }
+    const correctEdgesOfUpperLayer = async () => {
+      const edges = getEdgesOfUpperLayerToCorrect()
+      for (const edge of edges) {
+        await rotateEdgeOfUpperLayerToCorrectFace(edge)
+        await moveEdgeOfUpperLayerToCenterLayer(edge)
+      }
+    }
+    const moveStuckedEdgeFromCenterLayerToUpper = async () => {
+      const centerLayer = puzzleCube.getSlice('hfront')
+      const stuckedEdge = centerLayer.cubes.find(cube => cube.type === 'edge'
+        && puzzleCube.isCubeAtCorrectPosition(cube)
+        && !puzzleCube.isCubeColorAllFacingCorrect(cube))
+      if (!stuckedEdge) return
+
+      const sticker = stuckedEdge.getFaceByColor(stuckedEdge.colors[0])
+      const location = puzzleCube.getCubeLocationOnFace(stuckedEdge, sticker.facing)
+      assert(sticker.facing !== 'up' && sticker.facing !== 'down', 'edge of center layer should not facing up or down.')
+      assert(location === 'E' || location === 'W', 'edge of center layer should only at E or W.')
+      await puzzleCube.rotateFaceToFront(sticker.facing)
+      if (location === 'E') await doRightAligorithm()
+      else await doLeftAligorithm()
     }
 
     let count = 0
-    while (!centerLayerAllFacingCorrect()) {
-      let edges = edgesToCorrect()
-      if (edges.length === 0) {
-        const centerLayer = this.puzzleCube.getSlice('hfront')
-        const stuckCube = centerLayer.cubes.find((cube) => !facingAllCorrect(cube, this.puzzleCube))
-        assert(!!stuckCube, `stuckCube at center layer must exist when not edges at uppper layer.`)
-
-        const color = colorNotFacing(stuckCube, 'up')
-        console.log('color, stuckCube=', color, stuckCube)
-        // while (colorFacingOf(color, stuckCube) !== 'front') {
-        // await this.puzzleCube.do(`U MUD D'`)
-        // }
-        // await runLeftAligorithm()
-        edges = edgesToCorrect()
-      }
-      for (const edge of edges) {
-        await rotateToColorFace(edge)
-        await moveToCenterLayer(edge)
-      }
+    while (!isCenterLayerAllFacingCorrect()) {
+      await moveStuckedEdgeFromCenterLayerToUpper()
+      await correctEdgesOfUpperLayer()
       count++
       assert(count < 4, 'correcting center layer should run less than 4 times.')
     }

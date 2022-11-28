@@ -111,6 +111,11 @@ export class Cube {
   getColorByFace(face: FaceName) {
     return this.faceColorNames[face]
   }
+  getColorByFacing(facing: FaceName) {
+    const color = this.colors.find(color => this.getFaceByColor(color).facing === facing)
+    assert(!!color, `color facing ${facing} should be found.`)
+    return color
+  }
   getFaceNormal(face: FaceName) {
     const localToWordMatrix = this.transform.localToWorld()
     function toWorld(normal: vec3) {
