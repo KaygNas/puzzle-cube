@@ -323,14 +323,48 @@ export class PuzzleCubeResolver {
     const { puzzleCube } = this
     const yellowLayer = puzzleCube.getFaceByColor('yellow')
     assert(yellowLayer.name === 'up', 'yellowLayer should facing up.')
-    const isCorssFormed = () => {
+
+    type CorssState = {
+      state: 'dot' | 'line' | 'triangle' | 'cross'
+      edges: Cube[]
+    }
+    const getCrossState = (): CorssState => {
       const edges = yellowLayer.cubes.filter(cube => cube.type === 'edge')
-      return edges.every(cube => cube.getColorByFacing('up') === 'yellow')
+      const yellowFacingUpEdges = edges.filter(cube => cube.getColorByFacing('up') === 'yellow')
+      let state: any
+      if (yellowFacingUpEdges.length === 0) state = 'dot'
+      else if (yellowFacingUpEdges.length === 4) state = 'cross'
+      else {
+        const edgeLocations = yellowFacingUpEdges.map(edge => puzzleCube.getCubeLocationOnFace(edge, 'up'))
+        if ((edgeLocations.includes('N') && edgeLocations.includes('S'))
+          || (edgeLocations.indexOf('W') && edgeLocations.includes('E')))
+          state = 'line'
+        else
+          state = 'triangle'
+      }
+      return { state, edges: yellowFacingUpEdges }
+    }
+    const formCross = async ({ state, edges }: CorssState) => {
+      if (state === 'line' || state === 'triangle') {
+        const adjacentFacing = edges.flatMap(edge => edge.getAdjacentFacesOfColor('yellow')[0].facing)
+        if (state === 'line' && adjacentFacing.includes('front')) {
+          await puzzleCube.do('U')
+        }
+        else if (state === 'triangle') {
+          if (adjacentFacing.includes('left') && adjacentFacing.includes('front')) await puzzleCube.do('U')
+          else if (adjacentFacing.includes('front') && adjacentFacing.includes('right')) await puzzleCube.do('U U')
+          else if (adjacentFacing.includes('right') && adjacentFacing.includes('back')) await puzzleCube.do(`U'`)
+        }
+      }
+
+      await puzzleCube.do(`F R U R' U' F'`)
     }
 
     let count = 0
-    while (!isCorssFormed()) {
-      await puzzleCube.do(`F R U R' U' F'`)
+    let crossState = getCrossState()
+    while (crossState.state !== 'cross') {
+      await formCross(crossState)
+      crossState = getCrossState()
       count++
       assert(count < 12, 'doing to form yellow cross should less than 12 times.')
     }
