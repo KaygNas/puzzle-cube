@@ -2,15 +2,15 @@
 import { computed, reactive, ref } from 'vue'
 import KeyboardButton from './keyboard-button.vue'
 const LAYER_ROTATE_BUTTONS = [
-	{ action: 'F', keyName: 'Q' },
-	{ action: 'MFB', keyName: 'W' },
-	{ action: 'B', keyName: 'E' },
-	{ action: 'U', keyName: 'A' },
-	{ action: 'MUD', keyName: 'S' },
+	{ action: 'F', keyName: 'F' },
+	{ action: 'MFB', keyName: 'Q' },
+	{ action: 'B', keyName: 'B' },
+	{ action: 'U', keyName: 'U' },
+	{ action: 'MUD', keyName: 'W' },
 	{ action: 'D', keyName: 'D' },
-	{ action: 'R', keyName: 'Z' },
-	{ action: 'MRL', keyName: 'X' },
-	{ action: 'L', keyName: 'C' },
+	{ action: 'R', keyName: 'R' },
+	{ action: 'MRL', keyName: 'E' },
+	{ action: 'L', keyName: 'L' },
 ]
 
 const shiftKey = ref(false)

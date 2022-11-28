@@ -16,31 +16,31 @@ const onkeydown = (e: KeyboardEvent) => {
 	console.log('e.key=', e.key)
 	const direction: RotationDirection = e.shiftKey ? 'counterclockwise' : 'clockwise'
 	switch (e.key.toLowerCase()) {
-		case 'q':
+		case 'f':
 			puzzleCube.rotateSlice('front', direction)
 			break
-		case 'w':
+		case 'q':
 			puzzleCube.rotateSlice('vleft', direction)
 			break
-		case 'e':
+		case 'b':
 			puzzleCube.rotateSlice('back', direction)
 			break
-		case 'a':
+		case 'u':
 			puzzleCube.rotateSlice('up', direction)
 			break
-		case 's':
+		case 'w':
 			puzzleCube.rotateSlice('hfront', direction)
 			break
 		case 'd':
 			puzzleCube.rotateSlice('down', direction)
 			break
-		case 'z':
+		case 'r':
 			puzzleCube.rotateSlice('right', direction)
 			break
-		case 'x':
+		case 'e':
 			puzzleCube.rotateSlice('vfront', direction)
 			break
-		case 'c':
+		case 'l':
 			puzzleCube.rotateSlice('left', direction)
 			break
 		case 'enter':
