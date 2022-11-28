@@ -295,7 +295,7 @@ export class PuzzleCubeResolver {
     const moveStuckedEdgeFromCenterLayerToUpper = async () => {
       const centerLayer = puzzleCube.getSlice('hfront')
       const stuckedEdge = centerLayer.cubes.find(cube => cube.type === 'edge'
-        && puzzleCube.isCubeAtCorrectPosition(cube)
+        && puzzleCube.isCubeAtCorrectLayer(cube, 'hfront')
         && !puzzleCube.isCubeColorAllFacingCorrect(cube))
       if (!stuckedEdge) return
 

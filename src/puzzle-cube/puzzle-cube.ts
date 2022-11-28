@@ -259,6 +259,16 @@ export class PuzzleCude {
     const colors = this.getColorsOfCubeFacing(cube)
     return cube.colors.every(color => colors.includes(color))
   }
+  isCubeAtCorrectLayer(cube: Cube, sliceName: SliceName) {
+    const slice = this.getSlice(sliceName)
+    if (FACE_NAMES.includes(sliceName as any)) {
+      return cube.colors.includes(slice.centerCube.colors[0])
+    }
+    else {
+      const colors = slice.cubes.filter(cube => cube.type === 'center').map(cube => cube.colors[0])
+      return cube.colors.every(color => colors.includes(color))
+    }
+  }
 
   /** @deprecated */
   getFacesByCube(cube: Cube) {
