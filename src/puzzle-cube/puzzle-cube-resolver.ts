@@ -1,6 +1,6 @@
 import { assert } from './assert'
 import { Cube, FaceName, FACE_NAMES } from './cube'
-import { PuzzleCude, mapSliceNameToShort } from './puzzle-cube'
+import { PuzzleCude, mapSliceNameToShort, Slice } from './puzzle-cube'
 
 const makeDirectives = (faceName: FaceName, time: number, counterClockwise = false) => {
   return new Array(time).fill(mapSliceNameToShort(faceName) + (counterClockwise ? `'` : ''))
@@ -36,6 +36,8 @@ export class PuzzleCubeResolver {
     await this.step3_CenterLayer()
     console.log('-- doing step4 yellow cross --');
     await this.step4_YellowCross()
+    console.log('-- doing step5 swap edges --');
+    await this.step5_SwapEdges()
     console.log('-- all done! --')
   }
 
@@ -368,5 +370,51 @@ export class PuzzleCubeResolver {
       count++
       assert(count < 12, 'doing to form yellow cross should less than 12 times.')
     }
+  }
+
+  async step5_SwapEdges() {
+    const { puzzleCube } = this
+    const upper = puzzleCube.getSlice('up')
+    const edgeStickers = upper.cubes
+      .filter((cube) => cube.type === 'edge')
+      .flatMap((edge) => edge.getStickers())
+      .filter(sticker => sticker.facing !== 'up')
+    const doAlgorithm = () => puzzleCube.do(`R U R' U R U U R' U`)
+    const getLeftSticker = () => edgeStickers.find(sticker => sticker.facing === 'left')!
+    const getFrontSticker = () => edgeStickers.find(sticker => sticker.facing === 'front')!
+    const getBackSticker = () => edgeStickers.find((sticker) => sticker.facing === 'back')!
+
+    const rotateUpperToCorrectBackEdge = async () => {
+      const backColor = puzzleCube.getColorByFaceName('back')
+      while (getBackSticker().color !== backColor) {
+        await puzzleCube.do('U')
+      }
+    }
+    const correctLeftEdge = async () => {
+      const colorLeft = puzzleCube.getColorByFaceName('left')
+
+      if (getLeftSticker().color === colorLeft) { }
+      else if (getFrontSticker().color === colorLeft) {
+        await doAlgorithm()
+      }
+      else {
+        await puzzleCube.do(`U`)
+        await doAlgorithm()
+        await puzzleCube.do(`U'`)
+        await doAlgorithm()
+      }
+    }
+    const correctRestEdges = async () => {
+      const frontColor = puzzleCube.getColorByFaceName('front')
+      if (getFrontSticker().color !== frontColor) {
+        await puzzleCube.do(`U`)
+        await doAlgorithm()
+        await puzzleCube.do(`U'`)
+      }
+    }
+
+    await rotateUpperToCorrectBackEdge()
+    await correctLeftEdge()
+    await correctRestEdges()
   }
 }

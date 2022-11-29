@@ -108,6 +108,9 @@ export class Cube {
       .filter(_color => _color !== color)
       .map(color => this.getFaceByColor(color))
   }
+  getStickers() {
+    return this.colors.map((color) => this.getFaceByColor(color))
+  }
   getColorByFace(face: FaceName) {
     return this.faceColorNames[face]
   }
