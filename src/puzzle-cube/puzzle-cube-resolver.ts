@@ -40,7 +40,8 @@ export class PuzzleCubeResolver {
     await this.step5_SwapEdges()
     console.log('-- doing step6 cycle corners --');
     await this.step6_CycleCorners()
-
+    console.log('-- doing step7 orient corners --')
+    await this.step7_OrientCorners()
     console.log('-- all done! --')
   }
 
@@ -371,7 +372,7 @@ export class PuzzleCubeResolver {
       await formCross(crossState)
       crossState = getCrossState()
       count++
-      assert(count < 12, 'doing to form yellow cross should less than 12 times.')
+      assert(count < 32, 'doing to form yellow cross should less than 32 times.')
     }
   }
 
@@ -457,5 +458,51 @@ export class PuzzleCubeResolver {
     const corner = await findRightCorner()
     await rotateCornerToSE(corner)
     await cycleRestToPosition()
+  }
+
+  async step7_OrientCorners() {
+    const { puzzleCube } = this
+    const upper = puzzleCube.getSlice('up')
+    const upColor = upper.centerCube.colors[0]
+    const edges = upper.cubes.filter(cube => cube.type === 'edge')
+    const corners = upper.cubes.filter(cube => cube.type === 'corner')
+    const doAlgorithm = () => puzzleCube.do(`R' D' R D`)
+    const rotateCornerToSE = async (corner: Cube) => {
+      let count = 0
+      while (puzzleCube.getCubeLocationOnFace(corner, 'up') !== 'SE') {
+        await puzzleCube.do(`U`)
+        assert(count < 4, 'rotate corner to SE should run less than 4 times.')
+      }
+    }
+    const isCornerSolved = (corner: Cube) => {
+      try {
+        const cornerLocation = puzzleCube.getCubeLocationOnFace(corner, 'up')
+        const adjacentStickers = edges
+          .filter(edge => {
+            const edgeLocation = puzzleCube.getCubeLocationOnFace(edge, 'up')
+            return cornerLocation.includes(edgeLocation)
+          })
+          .flatMap(edge => edge.getAdjacentFacesOfColor(upColor))
+        return adjacentStickers.every(sticker => corner.getColorByFacing(sticker.facing) === sticker.color)
+      } catch (err) {
+        return false
+      }
+    }
+    const findUnsolvedCorner = () => corners.find(corner => !isCornerSolved(corner))
+
+    let unsolvedCorner: Cube | undefined
+    let count = 0
+    while (unsolvedCorner = findUnsolvedCorner()) {
+      await rotateCornerToSE(unsolvedCorner)
+      while (!isCornerSolved(unsolvedCorner)) {
+        await doAlgorithm()
+        count++
+        assert(count < 32, 'orient corners should do less than 32 times.')
+      }
+    }
+
+    while (!puzzleCube.isCubeColorAllFacingCorrect(edges[0])) {
+      await puzzleCube.do('U')
+    }
   }
 }
