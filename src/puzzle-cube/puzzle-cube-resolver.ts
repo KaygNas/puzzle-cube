@@ -38,6 +38,9 @@ export class PuzzleCubeResolver {
     await this.step4_YellowCross()
     console.log('-- doing step5 swap edges --');
     await this.step5_SwapEdges()
+    console.log('-- doing step6 cycle corners --');
+    await this.step6_CycleCorners()
+
     console.log('-- all done! --')
   }
 
@@ -416,5 +419,43 @@ export class PuzzleCubeResolver {
     await rotateUpperToCorrectBackEdge()
     await correctLeftEdge()
     await correctRestEdges()
+  }
+
+  async step6_CycleCorners() {
+    const { puzzleCube } = this
+    const upper = puzzleCube.getSlice('up')
+    const corners = upper.cubes.filter(cube => cube.type === 'corner')
+    const doAlgorithm = () => puzzleCube.do(`U R U' L' U R' U' L`)
+    const findRightCorner = async () => {
+      const find = () => corners.find(corner => puzzleCube.isCubeAtCorrectPosition(corner))
+      let corner: Cube | undefined
+      let count = 0
+      while (!(corner = find())) {
+        await doAlgorithm()
+        count++
+        assert(count < 4, 'right corner should be founded before cylce 4 times.')
+      }
+      return corner
+    }
+    const rotateCornerToSE = async (corner: Cube) => {
+      let count = 0
+      while (puzzleCube.getCubeLocationOnFace(corner, 'up') !== 'SE') {
+        await puzzleCube.do(`U MUD D'`)
+        assert(count < 4, 'rotate corner to SE should run less than 4 times.')
+      }
+    }
+    const cycleRestToPosition = async () => {
+      const isAllCornerAtPosition = () => corners.every(corner => puzzleCube.isCubeAtCorrectPosition(corner))
+      let count = 0
+      while (!isAllCornerAtPosition()) {
+        await doAlgorithm()
+        count++
+        assert(count < 4, 'cycle rest to position should be founded before cylce 4 times.')
+      }
+    }
+
+    const corner = await findRightCorner()
+    await rotateCornerToSE(corner)
+    await cycleRestToPosition()
   }
 }
