@@ -1,6 +1,9 @@
 import { assert } from './assert'
 import { Cube, FaceName, FACE_NAMES } from './cube'
-import { PuzzleCude, mapSliceNameToShort, Slice } from './puzzle-cube'
+import { PuzzleCude, mapSliceNameToShort } from './puzzle-cube'
+
+
+// TODO: refactor clean up code
 
 const makeDirectives = (faceName: FaceName, time: number, counterClockwise = false) => {
   return new Array(time).fill(mapSliceNameToShort(faceName) + (counterClockwise ? `'` : ''))
@@ -244,7 +247,7 @@ export class PuzzleCubeResolver {
       await correctWhiteCornerAtUpper()
       await correctWhiteCornerAtDown()
       count++
-      assert(count < 12, `correct white corner should run less than 12 times.`)
+      assert(count < 32, `correct white corner should run less than 32 times.`)
     }
     await rotateWhiteToDown()
   }

@@ -105,6 +105,7 @@ export class PuzzleCude {
   }
 
   async rotateSlice(sliceName: SliceName, direction: RotationDirection) {
+    // TODO: allow rotating three slice at same time when heading to same direction
     if (this.rotating) {
       return
     }

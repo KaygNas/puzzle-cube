@@ -13,6 +13,8 @@ import FRAGMENT_SHADER from './fragment-shader.glsl'
 import { vec3, vec4, mat4 } from 'gl-matrix'
 import { CubeVerticesWriter } from './cube-vertices-writer'
 
+// TODO: use Beam to render
+
 export class CubeRenderer {
   private gl: GL
 
