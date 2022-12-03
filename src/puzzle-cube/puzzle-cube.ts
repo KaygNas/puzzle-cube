@@ -119,7 +119,7 @@ export class PuzzleCude {
         cube.transform.rotate(slice.rotationAxis, drad)
       })
       this.render()
-    }, import.meta.env.DEV ? 10 : 200).finally(() => {
+    }, import.meta.env.DEV ? 16 : 200).finally(() => {
       this.rotating = false
     })
   }

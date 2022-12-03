@@ -241,7 +241,7 @@ export class PuzzleCubeResolver {
       const upperLayer = puzzleCube.getSlice('up')
       return upperLayer.cubes.every(cube => puzzleCube.isCubeColorAllFacingCorrect(cube))
     }
-    const rotateWhiteToDown = () => this.puzzleCube.do('L L MRL MRL R R')
+    const rotateWhiteToDown = () => this.puzzleCube.do(`R R MRL MRL L' L'`)
     let count = 0
     while (!isAllCornerCorrect()) {
       await correctWhiteCornerAtUpper()

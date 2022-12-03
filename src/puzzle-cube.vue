@@ -15,7 +15,7 @@ let puzzleCubeSolver: PuzzleCubeResolver
 const onkeydown = (e: KeyboardEvent) => {
 	console.log('e.key=', e.key)
 	const key = e.key
-	const isCapsLock = key.toUpperCase() === key
+	const isCapsLock = key.toUpperCase() === key || e.shiftKey
 	const direction: RotationDirection = isCapsLock ? 'counterclockwise' : 'clockwise'
 	switch (key.toLowerCase()) {
 		case 'f':
