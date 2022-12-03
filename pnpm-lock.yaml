@@ -3,6 +3,7 @@ lockfileVersion: 5.4
 specifiers:
   '@types/lodash': ^4.14.188
   '@vitejs/plugin-vue': ^3.2.0
+  beam-gl: ^0.2211.0
   gl-matrix: ^3.4.3
   lodash: ^4.17.21
   typescript: ^4.6.4
@@ -13,6 +14,7 @@ specifiers:
 
 dependencies:
   '@types/lodash': 4.14.188
+  beam-gl: 0.2211.0
   gl-matrix: 3.4.3
   lodash: 4.17.21
   vue: 3.2.45
@@ -216,6 +218,10 @@ packages:
   /balanced-match/1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
     dev: true
+
+  /beam-gl/0.2211.0:
+    resolution: {integrity: sha512-OFwap1TZABpjSSCzJnDtWBIsBWL30gq7am/4TPLL2yZOniVcqpE6NcdgdBt3lUmOH5NtYHAQzNmyzu4w7jsfuA==}
+    dev: false
 
   /brace-expansion/2.0.1:
     resolution: {integrity: sha512-XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==}
