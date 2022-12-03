@@ -49,9 +49,8 @@ const enterAction = computed(() => (shiftKey.value ? 'scramble' : 'solve'))
 
 <style scoped>
 .puzzle-cube-control-pane {
-	position: fixed;
-	left: 0;
-	top: 24px;
+	height: 100vh;
+	overflow: auto;
 
 	background-color: #00000033;
 	padding: 24px;

@@ -63,7 +63,15 @@ onUnmounted(() => {
 </script>
 
 <template>
-	<canvas ref="canvasEle" :width="canvasWidth" :height="canvasHeight" @keydown="onkeydown" />
+	<div class="canvas-wrapper">
+		<canvas ref="canvasEle" :width="canvasWidth" :height="canvasHeight" @keydown="onkeydown" />
+	</div>
 </template>
 
-<style scoped></style>
+<style scoped>
+.canvas-wrapper {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+</style>
