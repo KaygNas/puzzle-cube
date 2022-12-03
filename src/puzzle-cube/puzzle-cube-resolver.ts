@@ -153,7 +153,7 @@ export class PuzzleCubeResolver {
         || await tryMiddleLayer()
       await tryDownLayer()
       count++
-      assert(count < 8, 'forming plus should not try more than 8 times.')
+      assert(count < 100, 'forming plus should not try more than 100 times.')
     }
   }
 
@@ -192,7 +192,7 @@ export class PuzzleCubeResolver {
       while (!puzzleCube.isCubeColorAllFacingCorrect(whiteCorner)) {
         await puzzleCube.do(`R' D' R D`)
         count++
-        assert(count < 8, 'correct white corner need less than 8 times.')
+        assert(count < 100, 'correct white corner need less than 100 times.')
       }
     }
 
@@ -232,7 +232,7 @@ export class PuzzleCubeResolver {
         while (!isAtCorrectCorner(whiteCorner, 'down')) {
           await puzzleCube.do('D')
           count++
-          assert(count < 4, 'white corner should not rotate more that 4 times.', 'whiteCorner: ', whiteCorner)
+          assert(count < 100, 'white corner should not rotate more that 100 times.', 'whiteCorner: ', whiteCorner)
         }
         await correctWhiteCorner(whiteCorner)
       }
@@ -247,7 +247,7 @@ export class PuzzleCubeResolver {
       await correctWhiteCornerAtUpper()
       await correctWhiteCornerAtDown()
       count++
-      assert(count < 32, `correct white corner should run less than 32 times.`)
+      assert(count < 100, `correct white corner should run less than 100 times.`)
     }
     await rotateWhiteToDown()
   }
@@ -322,7 +322,7 @@ export class PuzzleCubeResolver {
       await moveStuckedEdgeFromCenterLayerToUpper()
       await correctEdgesOfUpperLayer()
       count++
-      assert(count < 8, 'correcting center layer should run less than 8 times.')
+      assert(count < 100, 'correcting center layer should run less than 100 times.')
     }
   }
 
@@ -375,7 +375,7 @@ export class PuzzleCubeResolver {
       await formCross(crossState)
       crossState = getCrossState()
       count++
-      assert(count < 32, 'doing to form yellow cross should less than 32 times.')
+      assert(count < 100, 'doing to form yellow cross should less than 100 times.')
     }
   }
 
@@ -437,7 +437,7 @@ export class PuzzleCubeResolver {
       while (!(corner = find())) {
         await doAlgorithm()
         count++
-        assert(count < 4, 'right corner should be founded before cylce 4 times.')
+        assert(count < 100, 'right corner should be founded before cylce 100 times.')
       }
       return corner
     }
@@ -445,7 +445,7 @@ export class PuzzleCubeResolver {
       let count = 0
       while (puzzleCube.getCubeLocationOnFace(corner, 'up') !== 'SE') {
         await puzzleCube.do(`U MUD D'`)
-        assert(count < 4, 'rotate corner to SE should run less than 4 times.')
+        assert(count < 100, 'rotate corner to SE should run less than 100 times.')
       }
     }
     const cycleRestToPosition = async () => {
@@ -454,7 +454,7 @@ export class PuzzleCubeResolver {
       while (!isAllCornerAtPosition()) {
         await doAlgorithm()
         count++
-        assert(count < 4, 'cycle rest to position should be founded before cylce 4 times.')
+        assert(count < 100, 'cycle rest to position should be founded before cylce 100 times.')
       }
     }
 
@@ -474,7 +474,7 @@ export class PuzzleCubeResolver {
       let count = 0
       while (puzzleCube.getCubeLocationOnFace(corner, 'up') !== 'SE') {
         await puzzleCube.do(`U`)
-        assert(count < 4, 'rotate corner to SE should run less than 4 times.')
+        assert(count < 100, 'rotate corner to SE should run less than 100 times.')
       }
     }
     const isCornerSolved = (corner: Cube) => {
@@ -500,7 +500,7 @@ export class PuzzleCubeResolver {
       while (!isCornerSolved(unsolvedCorner)) {
         await doAlgorithm()
         count++
-        assert(count < 32, 'orient corners should do less than 32 times.')
+        assert(count < 100, 'orient corners should do less than 100 times.')
       }
     }
 
