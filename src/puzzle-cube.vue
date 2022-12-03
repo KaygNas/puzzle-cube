@@ -14,8 +14,10 @@ let puzzleCubeSolver: PuzzleCubeResolver
 
 const onkeydown = (e: KeyboardEvent) => {
 	console.log('e.key=', e.key)
-	const direction: RotationDirection = e.shiftKey ? 'counterclockwise' : 'clockwise'
-	switch (e.key.toLowerCase()) {
+	const key = e.key
+	const isCapsLock = key.toUpperCase() === key
+	const direction: RotationDirection = isCapsLock ? 'counterclockwise' : 'clockwise'
+	switch (key.toLowerCase()) {
 		case 'f':
 			puzzleCube.rotateSlice('front', direction)
 			break
@@ -44,7 +46,7 @@ const onkeydown = (e: KeyboardEvent) => {
 			puzzleCube.rotateSlice('left', direction)
 			break
 		case 'enter':
-			e.shiftKey ? puzzleCubeSolver.scramble() : puzzleCubeSolver.solve()
+			isCapsLock ? puzzleCubeSolver.scramble() : puzzleCubeSolver.solve()
 			break
 	}
 	puzzleCube.render()

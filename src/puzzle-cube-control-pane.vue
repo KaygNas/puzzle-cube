@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, ref } from 'vue'
 import KeyboardButton from './keyboard-button.vue'
 const LAYER_ROTATE_BUTTONS = [
 	{ action: 'F', keyName: 'F' },
@@ -13,31 +13,31 @@ const LAYER_ROTATE_BUTTONS = [
 	{ action: 'L', keyName: 'L' },
 ]
 
-const shiftKey = ref(false)
+const capsLock = ref(false)
 const layerRotateButtons = computed(() => {
 	return LAYER_ROTATE_BUTTONS.map((button) => ({
 		...button,
-		action: shiftKey.value ? `${button.action}'` : button.action,
+		action: capsLock.value ? `${button.action}'` : button.action,
 	}))
 })
-const enterAction = computed(() => (shiftKey.value ? 'scramble' : 'solve'))
+const enterAction = computed(() => (capsLock.value ? 'scramble' : 'solve'))
 </script>
 
 <template>
 	<section class="puzzle-cube-control-pane">
 		<h3>Layer Rotate</h3>
 		<template v-for="(button, index) in layerRotateButtons" :key="index">
-			<KeyboardButton v-bind="button" :shift-key="shiftKey" />
+			<KeyboardButton v-bind="button" :caps-lock="capsLock" />
 			<hr v-if="index % 3 === 2" />
 		</template>
-		<KeyboardButton :action="enterAction" key-name="Enter" button-name="Enter" />
+		<KeyboardButton :action="enterAction" key-name="Enter" :caps-lock="capsLock" />
 		<hr />
 
 		<KeyboardButton
 			action="Reverse"
 			key-name="Shift"
-			@keydown="shiftKey = true"
-			@keyup="shiftKey = false"
+			:caps-lock="capsLock"
+			@pressed="capsLock = !capsLock"
 		/>
 		<h3>Camera Rotate</h3>
 		<KeyboardButton action="up" key-name="ArrowUp" button-name="↑" />
