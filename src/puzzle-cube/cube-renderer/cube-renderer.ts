@@ -90,7 +90,7 @@ export class CubeRenderer {
 					break
 				default:
 			}
-			mat4.multiply(modelMat, modelMat, tranformMat)
+			mat4.multiply(modelMat, tranformMat, modelMat)
 			this.render()
 		}
 		window.addEventListener('keydown', onkeydown)
